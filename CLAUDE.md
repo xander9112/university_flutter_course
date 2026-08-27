@@ -16,9 +16,9 @@ Each `Лекция N - <topic>` folder is one lecture and contains up to three f
 
 `Flutter курс.docx` is a master document that appears to be the source the per-lecture Markdown files were split from.
 
-### Numbering mismatch
+### Numbering
 
-Folder numbers (`Лекция N - ...`) do **not** match the numbering used inside the files. Folders 1–4 cover Dart fundamentals and environment setup; starting from folder 5, the internal title in `лекция.md` and the assignment number in `задание.md` both run 3 lower than the folder number (e.g. folder `Лекция 7 - Основы компоновки UI` contains `# Лекция 4 - ...` and `# Задание 4 — ...`; folder `Лекция 12` contains `# Лекция 9 - ...` / `# Задание 9 - ...`). When asked to edit "Лекция N", confirm whether N refers to the folder name or the in-document number.
+Folder numbers (`Лекция N - ...`) match the numbering used inside the files — the title in `лекция.md`, the review-questions header in `вопросы.md`, and the assignment number in `задание.md` all agree with the folder number. When renumbering a lecture (moving it earlier/later in the sequence), update the folder name, all in-file headers, and any cross-references to it elsewhere (e.g. "из Задания N", "в Лекции N") to keep everything consistent.
 
 ### The CineTrack thread
 
