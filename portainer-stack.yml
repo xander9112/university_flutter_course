@@ -1,7 +1,7 @@
 # Стек CineTrack для Portainer (Stacks → Add stack → Web editor).
-# Образы собираются и пушатся с Mac через ./deploy.sh api и ./deploy.sh web (push идёт на
-# 192.168.1.150:5000 напрямую, pull — через домен registry.xander9112.keenetic.link: это то же
-# хранилище). После каждого ./deploy.sh обновите теги образов ниже.
+# Образы собираются и пушатся с Mac в registry.xander9112.keenetic.link через ./deploy.sh api
+# и ./deploy.sh web (как это сделать — cine_track_api/README.md, раздел «Деплой»).
+# После каждого ./deploy.sh обновите теги образов ниже.
 #
 # Переменные окружения стека (Stacks → Environment variables):
 #   POSTGRES_PASSWORD   — пароль базы

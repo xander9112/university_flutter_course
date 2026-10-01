@@ -59,30 +59,86 @@ curl "http://localhost:5200/3/movie/popular?api_key=$K&language=ru-RU&page=1"
 curl "http://localhost:5200/3/search/movie?api_key=$K&language=ru-RU&query=%D0%9C%D0%B0%D1%82%D1%80%D0%B8%D1%86%D0%B0"
 ```
 
-## Публикация на сервер
+## Деплой
 
-Из корня репозитория курса, на Mac с запущенным Docker:
+Образы собираются на Mac и публикуются в registry `registry.xander9112.keenetic.link`, сервер скачивает их оттуда и запускает стек в Portainer. Публикация идёт в два захода — сначала API, потом веб-версия: в веб-версию встраивается API-ключ, а его выдаёт уже работающий API.
+
+Нужно на Mac:
+
+- запущенный Docker Desktop с доступом к registry: если push просит авторизацию — `docker login registry.xander9112.keenetic.link`;
+- Node и Flutter.
+
+Все команды — из **корня репозитория курса**, в любой ветке: `deploy.sh` есть во всех.
+
+### 1. Опубликовать API
 
 ```bash
-./deploy.sh api                      # → cinetrack-api:<version из package.json>
-
-CINETRACK_API_URL=https://cinetrack-api.example.com \
-CINETRACK_API_KEY=ключ_из_админки \
-./deploy.sh web                      # → cinetrack-web:<version из pubspec.yaml>
+./deploy.sh api
 ```
 
-Веб-версия собирается из ветки `lesson_21` (переменная `WEB_BRANCH`), адрес API и ключ встраиваются в неё при сборке. Сначала опубликуйте и настройте API, создайте в админке ключ, потом собирайте веб-версию.
+Соберётся и отправится образ `registry.xander9112.keenetic.link/cinetrack-api:<version>`, версия — из `cine_track_api/package.json`. Сборка под `linux/amd64` на Mac с Apple Silicon идёт через эмуляцию и занимает около 5 минут.
 
-На сервере стек запускается в Portainer из [portainer-stack.yml](../portainer-stack.yml):
-- переменные стека — `POSTGRES_PASSWORD`, `PAYLOAD_SECRET`, при желании `TMDB_IMPORT_API_KEY`;
-- после каждого `./deploy.sh` обновите там теги образов.
+> Если push падает с `404` на загрузке слоёв (реверс-прокси registry ломал push у hepatool), отправьте образ напрямую — это то же хранилище: `REGISTRY=192.168.1.150:5000 ./deploy.sh api`.
 
-В Nginx Proxy Manager нужно два хоста, оба с HTTPS: приложение на Android и iOS не ходит по обычному HTTP.
+### 2. Создать стек в Portainer
 
-| Домен | Порт | Важно |
-|---|---|---|
-| `cinetrack-api.example.com` | 5200 | весь домен целиком: API (`/3`), картинки (`/t/p`), админка (`/admin`) и её ресурсы (`/_next`, `/api`) лежат в разных путях от корня |
-| `cinetrack.example.com` | 5210 | веб-версия |
+1. **Stacks → Add stack → Web editor**, вставить содержимое [portainer-stack.yml](../portainer-stack.yml).
+2. **Environment variables**:
+
+   | Переменная | Значение |
+   |---|---|
+   | `POSTGRES_PASSWORD` | любой пароль базы |
+   | `PAYLOAD_SECRET` | длинная случайная строка: `openssl rand -base64 32`; подписывает сессии админки, при смене все входы сбрасываются |
+   | `TMDB_IMPORT_API_KEY` | необязательно — ключ TMDB для кнопки импорта фильмов |
+
+3. Сервис `web` при первом запуске закомментируйте — его образа ещё нет.
+4. **Deploy the stack**.
+
+### 3. Настроить Nginx Proxy Manager для API
+
+Proxy Host, например `cinetrack-api.<домен>`: порт **5200** на сервере, во вкладке SSL — сертификат Let's Encrypt и Force SSL. HTTPS обязателен: приложение на Android и iOS по обычному HTTP не ходит.
+
+Нужен **отдельный (под)домен целиком**, не подпуть: API (`/3`), картинки (`/t/p`), админка (`/admin`) и её ресурсы (`/_next`, `/api`) лежат в разных путях от корня.
+
+Проверка: `https://cinetrack-api.<домен>/health` отвечает `ok`.
+
+### 4. Наполнить API
+
+1. `https://cinetrack-api.<домен>/admin` — создать первого пользователя (администратора).
+2. **API-ключи → Создать** — например «Курс 2026», скопировать значение ключа.
+3. **Фильмы** — добавить вручную или нажать «Импортировать популярные из TMDB» (нужен `TMDB_IMPORT_API_KEY`).
+
+```bash
+curl "https://cinetrack-api.<домен>/3/movie/popular?api_key=<ключ>&language=ru-RU&page=1"
+```
+
+### 5. Опубликовать веб-версию
+
+```bash
+CINETRACK_API_URL=https://cinetrack-api.<домен> \
+CINETRACK_API_KEY=<ключ из шага 4> \
+./deploy.sh web
+```
+
+Скрипт соберёт Flutter из ветки `lesson_21` во временной копии (другая ветка — `WEB_BRANCH=...`) с адресом API и ключом и отправит образ `registry.xander9112.keenetic.link/cinetrack-web:<version>`, версия — из `cine_track/pubspec.yaml` (`1.0.0+1` → `1.0.0-1`).
+
+### 6. Включить веб-версию
+
+1. В Portainer раскомментировать `web`, проверить теги образов — **Update the stack**.
+2. В Nginx Proxy Manager — второй Proxy Host, например `cinetrack.<домен>`: порт **5210**, сертификат Let's Encrypt.
+
+Приложение откроется на `https://cinetrack.<домен>`.
+
+### Обновления
+
+| Что изменилось | Что сделать |
+|---|---|
+| код API | поднять `version` в `cine_track_api/package.json` → `./deploy.sh api` → новый тег `cinetrack-api` в стеке → **Update the stack**. Миграции базы применятся сами при старте |
+| приложение, адрес API или ключ | `./deploy.sh web` с теми же переменными → обновить стек. Если `version` в `pubspec.yaml` не менялась, тег тот же — включите **Re-pull image** при обновлении |
+
+Если ключ, встроенный в веб-версию, отключить или удалить в админке, веб-версия перестанет загружать фильмы — пересоберите её с новым ключом.
+
+Данные — в volume стека: `cinetrack_db_data` (база) и `cinetrack_media` (постеры). Обновление образов их не трогает.
 
 ## Подключение студентов
 

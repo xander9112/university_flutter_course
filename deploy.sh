@@ -12,9 +12,10 @@
 # После публикации обновите теги в portainer-stack.yml.
 #
 # Переменные окружения:
-#   REGISTRY   — куда пушить (по умолчанию 192.168.1.150:5000 — напрямую по IP: реверс-прокси
-#                registry.xander9112.keenetic.link ломает push новых блобов; pull через домен
-#                работает, поэтому portainer-stack.yml ссылается на домен)
+#   REGISTRY   — куда пушить, хост без https:// (по умолчанию registry.xander9112.keenetic.link —
+#                тот же адрес, из которого portainer-stack.yml скачивает образы). Если push через
+#                реверс-прокси падает с 404 на загрузке слоёв (так было у hepatool), можно пушить
+#                напрямую: REGISTRY=192.168.1.150:5000 ./deploy.sh api — это то же хранилище
 #   PLATFORM   — платформа образа (по умолчанию linux/amd64 — архитектура сервера; сборка идёт
 #                на Mac с Apple Silicon, без явной платформы получится linux/arm64 и контейнер
 #                на сервере упадёт с "exec format error")
@@ -27,7 +28,7 @@
 
 set -euo pipefail
 
-REGISTRY="${REGISTRY:-192.168.1.150:5000}"
+REGISTRY="${REGISTRY:-registry.xander9112.keenetic.link}"
 PLATFORM="${PLATFORM:-linux/amd64}"
 WEB_BRANCH="${WEB_BRANCH:-lesson_21}"
 
