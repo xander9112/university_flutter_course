@@ -1,0 +1,50 @@
+# Шаблон: при старте контейнера nginx подставляет переменные окружения (${API_UPSTREAM})
+# и кладёт результат в /etc/nginx/conf.d/default.conf. Свои переменные nginx ($uri, $host…)
+# не затрагиваются — подставляются только заданные переменные окружения.
+
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json application/wasm image/svg+xml;
+    gzip_min_length 1024;
+
+    # Веб-версия и API живут на одном домене. Пути API проксируются в cine_track_api:
+    #   /3, /t/p     — TMDB-совместимый API и постеры (их запрашивает приложение)
+    #   /admin       — админка Payload
+    #   /api, /_next — REST админки и её JS/CSS: админка запрашивает их мимо /admin,
+    #                  и без этих правил получила бы index.html приложения вместо JSON
+    # Резолвер Docker + переменная: имя `api` ищется при запросе, а не при старте, иначе
+    # nginx не запустился бы, пока контейнер api ещё не поднят.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    set $api_upstream ${API_UPSTREAM};
+
+    location ~ ^/(3|t/p|admin|api|_next)(/|$) {
+        proxy_pass $api_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        # Nginx Proxy Manager снаружи терминирует HTTPS и передаёт исходную схему
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+        proxy_read_timeout 120s; # импорт из TMDB в админке может идти до минуты
+        client_max_body_size 20m; # загрузка постеров
+    }
+
+    location / {
+        # Имена файлов сборки Flutter без хэшей (main.dart.js, flutter_bootstrap.js…) —
+        # браузер перепроверяет их при каждом открытии, иначе после деплоя смешаются старые
+        # и новые файлы. Повторная загрузка дешёвая: nginx ответит 304 по ETag.
+        add_header Cache-Control "no-cache" always;
+        try_files $uri $uri/ /index.html;
+    }
+
+    location = /health {
+        access_log off;
+        add_header Content-Type text/plain;
+        return 200 "ok";
+    }
+}
