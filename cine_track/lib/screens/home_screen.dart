@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/movie.dart';
-import '../services/movie_api_service.dart';
+import '../providers/favorites_provider.dart';
+import '../providers/movies_provider.dart';
 import '../widgets/movie_card.dart';
 import '../widgets/movie_preview_card.dart';
 
@@ -13,17 +15,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _apiService = MovieApiService();
-
-  // Загруженные из сети фильмы. Список перемешивается, из него удаляются
-  // и в него добавляются фильмы.
-  List<Movie> _movies = [];
-  bool _isLoading = true;
-  String? _error;
-
-  // Личные оценки: id фильма → оценка. Пока живут только в памяти.
-  final Map<int, double> _userRatings = {};
-
   static const _sectionTitleStyle = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.bold,
@@ -32,23 +23,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadMovies();
+    // Загружаем фильмы при первом рендере: в самом initState
+    // провайдер нельзя заставить уведомить слушателей во время build.
+    Future.microtask(() {
+      if (!mounted) return;
+      context.read<MoviesProvider>().loadMovies();
+    });
   }
 
-  Future<void> _openDetails(Movie movie) async {
-    // Без параметра типа: таблица routes создаёт MaterialPageRoute<dynamic>,
-    // и pushNamed<double> упал бы с TypeError. Приводим тип результата.
-    final rating = await Navigator.pushNamed(
-      context,
-      '/movie-detail',
-      arguments: movie,
-    ) as double?;
-    if (rating == null || !mounted) return;
-
-    setState(() => _userRatings[movie.id] = rating);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Ваша оценка «${movie.title}»: $rating')),
-    );
+  // Оценку экран деталей сохраняет сам в RatingsProvider,
+  // поэтому результата от маршрута больше не ждём.
+  void _openDetails(Movie movie) {
+    Navigator.pushNamed(context, '/movie-detail', arguments: movie);
   }
 
   Future<void> _addMovie() async {
@@ -56,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // После await экран мог быть уже закрыт — тогда context использовать нельзя.
     if (movie == null || !mounted) return;
 
-    setState(() => _movies.insert(0, movie));
+    context.read<MoviesProvider>().addMovie(movie);
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text('«${movie.title}» добавлен!')));
   }
@@ -81,46 +67,28 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _addToFavorites(Movie movie) {
-    // Само избранное пока нигде не хранится — это будет в Задании 12.
+  void _toggleFavorite(Movie movie) {
+    final favorites = context.read<FavoritesProvider>();
+    favorites.toggleFavorite(movie);
+    // Двойной тап переключает избранное, поэтому и текст зависит от результата.
+    final added = favorites.isFavorite(movie.id);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('«${movie.title}» добавлен в избранное'),
+        content: Text(
+          added
+              ? '«${movie.title}» добавлен в избранное'
+              : '«${movie.title}» удалён из избранного',
+        ),
         duration: const Duration(seconds: 2),
       ),
     );
   }
 
-  Future<void> _loadMovies() async {
-    try {
-      final movies = await _apiService.getPopularMovies();
-      if (!mounted) return;
-      setState(() {
-        _movies = movies;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  void _retry() {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-    _loadMovies();
-  }
-
-  Widget _buildBody() {
-    if (_isLoading) {
+  Widget _buildBody(MoviesProvider moviesProvider) {
+    if (moviesProvider.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_error != null) {
+    if (moviesProvider.error != null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -129,15 +97,23 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               const Icon(Icons.error_outline, size: 48, color: Colors.red),
               const SizedBox(height: 8),
-              Text('Ошибка: $_error', textAlign: TextAlign.center),
-              TextButton(onPressed: _retry, child: const Text('Повторить')),
+              Text(
+                'Ошибка: ${moviesProvider.error}',
+                textAlign: TextAlign.center,
+              ),
+              TextButton(
+                onPressed: moviesProvider.loadMovies,
+                child: const Text('Повторить'),
+              ),
             ],
           ),
         ),
       );
     }
+
+    final movies = moviesProvider.movies;
     // Лента «Популярное» — первые 5 фильмов списка.
-    final popular = _movies.take(5).toList();
+    final popular = movies.take(5).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -169,16 +145,16 @@ class _HomeScreenState extends State<HomeScreen> {
           child: ListView.builder(
             // Отступ снизу, чтобы FloatingActionButton не закрывал последнюю карточку.
             padding: const EdgeInsets.only(bottom: 88),
-            itemCount: _movies.length,
+            itemCount: movies.length,
             // Без этого колбэка ListView.builder не находит переставленный
             // элемент по ключу и пересоздаёт его, теряя состояние
             // (см. notes.md, Задание 7).
             findChildIndexCallback: (key) {
-              final index = _movies.indexWhere((m) => ValueKey(m.id) == key);
+              final index = movies.indexWhere((m) => ValueKey(m.id) == key);
               return index == -1 ? null : index;
             },
             itemBuilder: (context, index) {
-              final movie = _movies[index];
+              final movie = movies[index];
               // Ключ стоит на корневом виджете элемента — Dismissible.
               return Dismissible(
                 key: ValueKey(movie.id),
@@ -190,14 +166,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
                 confirmDismiss: (direction) => _confirmDelete(movie),
-                onDismissed: (direction) {
-                  setState(() {
-                    _movies.removeAt(index);
-                  });
-                },
+                onDismissed: (direction) =>
+                    context.read<MoviesProvider>().removeMovie(movie.id),
                 child: GestureDetector(
                   onTap: () => _openDetails(movie),
-                  onDoubleTap: () => _addToFavorites(movie),
+                  onDoubleTap: () => _toggleFavorite(movie),
                   child: MovieCard(movie: movie),
                 ),
               );
@@ -210,6 +183,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final moviesProvider = context.watch<MoviesProvider>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('CineTrack'),
@@ -217,15 +192,11 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.shuffle),
             tooltip: 'Перемешать',
-            onPressed: () {
-              setState(() {
-                _movies.shuffle();
-              });
-            },
+            onPressed: () => context.read<MoviesProvider>().shuffle(),
           ),
         ],
       ),
-      body: _buildBody(),
+      body: _buildBody(moviesProvider),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Добавить фильм',
         onPressed: _addMovie,

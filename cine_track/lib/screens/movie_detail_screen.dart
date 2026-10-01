@@ -1,26 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../data/genres.dart';
 import '../models/movie.dart';
+import '../providers/ratings_provider.dart';
 import '../widgets/movie_poster.dart';
 import '../widgets/rating_dialog.dart';
 
 class MovieDetailScreen extends StatelessWidget {
   const MovieDetailScreen({super.key});
 
-  Future<void> _rate(BuildContext context) async {
+  Future<void> _rate(BuildContext context, Movie movie) async {
     final rating = await showDialog<double>(
       context: context,
       builder: (_) => const RatingDialog(),
     );
-    if (rating != null && context.mounted) {
-      Navigator.pop(context, rating); // возвращаем оценку на предыдущий экран
-    }
+    if (rating == null || !context.mounted) return;
+
+    // Оценка сохраняется в общем состоянии — неважно, откуда открыт экран
+    // (главная, поиск, избранное). Возвращать её через pop больше не нужно.
+    context.read<RatingsProvider>().setRating(movie.id, rating);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Ваша оценка «${movie.title}»: $rating')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final movie = ModalRoute.of(context)!.settings.arguments as Movie;
+    final userRating = context.watch<RatingsProvider>().ratingOf(movie.id);
     final genres = movie.genreIds
         .map((id) => tmdbGenres[id])
         .whereType<String>()
@@ -81,12 +89,21 @@ class MovieDetailScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 24),
+                  Text(
+                    userRating == null
+                        ? 'Вы ещё не оценили этот фильм'
+                        : 'Ваша оценка: ${userRating.toStringAsFixed(1)}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      onPressed: () => _rate(context),
+                      onPressed: () => _rate(context, movie),
                       icon: const Icon(Icons.star),
-                      label: const Text('Оценить'),
+                      label: Text(
+                        userRating == null ? 'Оценить' : 'Изменить оценку',
+                      ),
                     ),
                   ),
                 ],

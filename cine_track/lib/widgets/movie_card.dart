@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/movie.dart';
+import '../providers/favorites_provider.dart';
 import 'movie_poster.dart';
 
 class MovieCard extends StatelessWidget {
@@ -10,6 +12,10 @@ class MovieCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // watch: карточка перерисовывается сразу, как только избранное меняется.
+    final favorites = context.watch<FavoritesProvider>();
+    final isFav = favorites.isFavorite(movie.id);
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       clipBehavior: Clip.antiAlias,
@@ -37,6 +43,15 @@ class MovieCard extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+          IconButton(
+            tooltip: isFav ? 'Убрать из избранного' : 'В избранное',
+            icon: Icon(
+              isFav ? Icons.favorite : Icons.favorite_border,
+              color: isFav ? Colors.red : null,
+            ),
+            onPressed: () =>
+                context.read<FavoritesProvider>().toggleFavorite(movie),
           ),
         ],
       ),
