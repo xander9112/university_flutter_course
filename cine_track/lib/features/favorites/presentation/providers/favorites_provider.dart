@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'package:injectable/injectable.dart';
 
 import '../../../movies/domain/entities/movie.dart';
 import '../../domain/usecases/get_favorites.dart';
 import '../../domain/usecases/toggle_favorite.dart';
 
+@injectable
 class FavoritesProvider extends ChangeNotifier {
   final GetFavorites _getFavorites;
   final ToggleFavorite _toggleFavorite;

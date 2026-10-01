@@ -2,6 +2,33 @@
 
 Каждая лекция курса — отдельная ветка `lesson_N`. Здесь описано, что изменилось в приложении по сравнению с предыдущей лекцией.
 
+## Лекция 16 — Dependency Injection (`lesson_16`)
+
+Ручная сборка зависимостей из `app_dependencies.dart` заменена на GetIt + Injectable: классы помечены аннотациями, регистрация генерируется.
+
+### Добавлено
+- Зависимости `get_it: ^9.3.0`, `injectable: ^3.0.0`; dev — `injectable_generator: ^3.1.3`, `build_runner: ^2.16.1`.
+- `lib/core/di/injection.dart` — `sl = GetIt.instance` и `configureDependencies()` (`@InjectableInit`).
+- `lib/core/di/injection.config.dart` — сгенерирован `build_runner`, лежит в репозитории.
+- `lib/core/di/app_module.dart` — `@module AppModule` регистрирует `http.Client` как `@lazySingleton`: один клиент на всё приложение.
+- Аннотации:
+  - `@LazySingleton(as: ...)` — `MovieRemoteDataSourceImpl`, `MovieLocalDataSourceImpl`, `MovieRepositoryImpl`, `FavoritesRepositoryImpl`, `RatingsRepositoryImpl` (регистрируются под типом абстракции);
+  - `@lazySingleton` — use cases `GetPopularMovies`, `SearchMovies`, `GetFavorites`, `ToggleFavorite`, `GetRatings`, `SetRating`;
+  - `@injectable` (factory) — `MoviesBloc`, `FavoritesProvider`, `RatingsProvider`: у каждого `BlocProvider` свой экземпляр.
+- `README.md`: как перегенерировать код.
+
+### Изменено
+- `lib/main.dart`: `main()` стал асинхронным — `WidgetsFlutterBinding.ensureInitialized()`, веб-фабрика SQLite, затем `await configureDependencies()` до `runApp`. Блок и провайдеры берутся из `sl<T>()`.
+- `SearchScreen`: `BlocProvider(create: (_) => sl<MoviesBloc>())`.
+
+### Удалено
+- `lib/app_dependencies.dart`.
+
+### Проверка
+- `flutter analyze` — без замечаний; `dart run build_runner build` генерирует регистрацию всех 15 классов и `http.Client`.
+- Временный тест (удалён после проверки) через настоящий `configureDependencies()`: `MoviesBloc`, `FavoritesProvider`, `RatingsProvider` — новые экземпляры при каждом `sl<T>()`; `MovieRepository` (это `MovieRepositoryImpl`), use cases и `http.Client` — одни и те же; приложение, собранное через `sl<T>()`, загружает список, поиск работает и не меняет главный экран.
+- `flutter build web` проходит, в headless Chrome приложение запускается без ошибок.
+
 ## Лекция 15 — Clean Architecture (`lesson_15`)
 
 Проект разложен по фичам (`movies`, `favorites`, `ratings`, `main`) и трём слоям: `domain`, `data`, `presentation`. Поведение приложения не изменилось.

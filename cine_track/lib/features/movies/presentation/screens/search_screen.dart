@@ -6,7 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/movies_bloc.dart';
 import '../blocs/movies_event.dart';
 import '../blocs/movies_state.dart';
-import '../../../../app_dependencies.dart';
+import '../../../../core/di/injection.dart';
 import '../widgets/movie_card.dart';
 
 class SearchScreen extends StatelessWidget {
@@ -17,7 +17,7 @@ class SearchScreen extends StatelessWidget {
     // Свой экземпляр блока: результаты поиска не должны заменять
     // список на главном экране.
     return BlocProvider(
-      create: (_) => createMoviesBloc(),
+      create: (_) => sl<MoviesBloc>(),
       child: const _SearchView(),
     );
   }

@@ -1,10 +1,12 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:injectable/injectable.dart';
 
 import '../../domain/usecases/get_popular_movies.dart';
 import '../../domain/usecases/search_movies.dart';
 import 'movies_event.dart';
 import 'movies_state.dart';
 
+@injectable // factory: новый экземпляр при каждом BlocProvider
 class MoviesBloc extends Bloc<MoviesEvent, MoviesState> {
   final GetPopularMovies _getPopularMovies;
   final SearchMovies _searchMovies;

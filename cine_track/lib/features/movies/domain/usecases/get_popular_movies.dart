@@ -1,6 +1,9 @@
+import 'package:injectable/injectable.dart';
+
 import '../entities/movie.dart';
 import '../repositories/movie_repository.dart';
 
+@lazySingleton
 class GetPopularMovies {
   final MovieRepository repository;
   const GetPopularMovies(this.repository);

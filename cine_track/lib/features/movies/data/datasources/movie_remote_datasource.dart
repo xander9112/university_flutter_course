@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:injectable/injectable.dart';
 
 import '../models/movie_dto.dart';
 
@@ -9,6 +10,7 @@ abstract class MovieRemoteDataSource {
   Future<List<MovieDto>> searchMovies(String query);
 }
 
+@LazySingleton(as: MovieRemoteDataSource)
 class MovieRemoteDataSourceImpl implements MovieRemoteDataSource {
   static const _baseUrl = 'https://api.themoviedb.org/3';
 

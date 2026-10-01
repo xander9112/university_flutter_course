@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:injectable/injectable.dart';
 
 import '../../domain/repositories/ratings_repository.dart';
 
 /// Хранит оценки в SharedPreferences строкой JSON: `{"27205": 8.5}`.
 /// В JSON ключи всегда строки, поэтому id переводятся туда и обратно.
+@LazySingleton(as: RatingsRepository)
 class RatingsRepositoryImpl implements RatingsRepository {
   static const _key = 'user_ratings';
 

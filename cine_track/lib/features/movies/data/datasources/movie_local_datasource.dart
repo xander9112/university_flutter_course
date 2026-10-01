@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:injectable/injectable.dart';
 
 import '../models/movie_dto.dart';
 
@@ -17,6 +18,7 @@ abstract class MovieLocalDataSource {
 /// На Android и iOS — файл `movies_cache.json` в папке документов. В браузере
 /// файловой системы нет, поэтому там JSON хранится в `SharedPreferences`
 /// (`localStorage`), как в Лекции 14.
+@LazySingleton(as: MovieLocalDataSource)
 class MovieLocalDataSourceImpl implements MovieLocalDataSource {
   static const _webKey = 'movies_cache';
 

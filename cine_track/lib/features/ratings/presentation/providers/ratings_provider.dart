@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
+import 'package:injectable/injectable.dart';
 
 import '../../domain/usecases/get_ratings.dart';
 import '../../domain/usecases/set_rating.dart';
 
+@injectable
 class RatingsProvider extends ChangeNotifier {
   final GetRatings _getRatings;
   final SetRating _setRating;
