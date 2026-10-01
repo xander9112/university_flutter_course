@@ -6,6 +6,7 @@ import '../blocs/movies/movies_event.dart';
 import '../blocs/movies/movies_state.dart';
 import '../models/movie.dart';
 import '../providers/favorites_provider.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/movie_card.dart';
 import '../widgets/movie_preview_card.dart';
 
@@ -58,9 +59,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _toggleFavorite(Movie movie) {
+  Future<void> _toggleFavorite(Movie movie) async {
     final favorites = context.read<FavoritesProvider>();
-    favorites.toggleFavorite(movie);
+    // toggleFavorite пишет в базу — ждём, иначе isFavorite ниже
+    // вернёт ещё старое значение.
+    await favorites.toggleFavorite(movie);
+    if (!mounted) return;
     // Двойной тап переключает избранное, поэтому и текст зависит от результата.
     final added = favorites.isFavorite(movie.id);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -179,10 +183,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('CineTrack'),
         actions: [
+          IconButton(
+            icon: Icon(
+              themeProvider.isDark ? Icons.light_mode : Icons.dark_mode,
+            ),
+            tooltip: themeProvider.isDark ? 'Светлая тема' : 'Тёмная тема',
+            onPressed: () => context.read<ThemeProvider>().toggle(),
+          ),
           IconButton(
             icon: const Icon(Icons.shuffle),
             tooltip: 'Перемешать',
