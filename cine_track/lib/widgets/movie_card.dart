@@ -1,38 +1,22 @@
 import 'package:flutter/material.dart';
 
 import '../models/movie.dart';
+import 'movie_poster.dart';
 
 class MovieCard extends StatelessWidget {
   final Movie movie;
 
   const MovieCard({super.key, required this.movie});
 
-  static const Widget _placeholder = Image(
-    image: AssetImage('assets/images/placeholder.png'),
-    fit: BoxFit.cover,
-  );
-
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       clipBehavior: Clip.antiAlias,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 80,
-            height: 120,
-            // Если постера нет, сразу показываем заглушку, а не грузим пустой URL.
-            // errorBuilder срабатывает, когда постер есть, но не загрузился.
-            child: movie.posterPath != null
-                ? Image.network(
-                    movie.posterUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => _placeholder,
-                  )
-                : _placeholder,
-          ),
+          MoviePoster(movie: movie, width: 80, height: 120),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(12),
