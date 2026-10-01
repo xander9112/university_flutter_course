@@ -1,24 +1,38 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../models/movie.dart';
+import '../blocs/movies/movies_bloc.dart';
+import '../blocs/movies/movies_event.dart';
+import '../blocs/movies/movies_state.dart';
 import '../services/movie_api_service.dart';
 import '../widgets/movie_card.dart';
 
-class SearchScreen extends StatefulWidget {
+class SearchScreen extends StatelessWidget {
   const SearchScreen({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  Widget build(BuildContext context) {
+    // Свой экземпляр блока: результаты поиска не должны заменять
+    // список на главном экране.
+    return BlocProvider(
+      create: (_) => MoviesBloc(MovieApiService()),
+      child: const _SearchView(),
+    );
+  }
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchView extends StatefulWidget {
+  const _SearchView();
+
+  @override
+  State<_SearchView> createState() => _SearchViewState();
+}
+
+class _SearchViewState extends State<_SearchView> {
   final _controller = TextEditingController();
-  final _apiService = MovieApiService();
   Timer? _debounce;
-  List<Movie> _results = []; // до ввода запроса экран пуст
-  bool _isSearching = false;
 
   @override
   void dispose() {
@@ -29,43 +43,35 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _onSearch(String query) {
     _debounce?.cancel();
-    // Пока ждём паузу в наборе и ответ сервера, показываем индикатор,
-    // а не «Ничего не найдено».
-    setState(() => _isSearching = query.trim().isNotEmpty);
     // Запрос уходит, только если пользователь не печатал 500 мс.
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
-      try {
-        final results = await _apiService.searchMovies(query.trim());
-        // Пока шёл запрос, текст могли изменить — тогда этот ответ устарел,
-        // и показывать его поверх более нового запроса нельзя.
-        if (!mounted || query != _controller.text) return;
-        setState(() {
-          _results = results;
-          _isSearching = false;
-        });
-      } catch (e) {
-        if (!mounted) return;
-        setState(() => _isSearching = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Ошибка поиска: $e')));
-      }
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      context.read<MoviesBloc>().add(SearchMoviesRequested(query));
     });
   }
 
-  Widget _buildBody() {
-    if (_controller.text.trim().isEmpty) {
+  Widget _buildBody(BuildContext context, MoviesState state) {
+    if (state is MoviesInitial) {
       return const Center(child: Text('Введите название фильма'));
     }
-    if (_isSearching) {
+    if (state is MoviesLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_results.isEmpty) {
+    if (state is MoviesError) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text('Ошибка: ${state.message}', textAlign: TextAlign.center),
+        ),
+      );
+    }
+    final movies = (state as MoviesLoaded).movies;
+    if (movies.isEmpty) {
       return const Center(child: Text('Ничего не найдено'));
     }
     return ListView.builder(
-      itemCount: _results.length,
+      itemCount: movies.length,
       itemBuilder: (context, index) {
-        final movie = _results[index];
+        final movie = movies[index];
         return GestureDetector(
           onTap: () =>
               Navigator.pushNamed(context, '/movie-detail', arguments: movie),
@@ -88,7 +94,7 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ),
       ),
-      body: _buildBody(),
+      body: BlocBuilder<MoviesBloc, MoviesState>(builder: _buildBody),
     );
   }
 }

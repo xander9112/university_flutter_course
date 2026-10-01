@@ -2,6 +2,36 @@
 
 Каждая лекция курса — отдельная ветка `lesson_N`. Здесь описано, что изменилось в приложении по сравнению с предыдущей лекцией.
 
+## Лекция 13 — BLoC (`lesson_13`)
+
+`MoviesProvider` заменён на `MoviesBloc`: загрузка, обновление, поиск, добавление, удаление и перемешивание стали событиями. `FavoritesProvider` и `RatingsProvider` остаются провайдерами.
+
+### Добавлено
+- Зависимость `flutter_bloc: ^9.1.1` (`bloc` 9).
+- `lib/blocs/movies/movies_event.dart` — события `LoadMovies`, `RefreshMovies`, `SearchMoviesRequested`, `AddMovie`, `RemoveMovie`, `ShuffleMovies`.
+- `lib/blocs/movies/movies_state.dart` — состояния `MoviesInitial`, `MoviesLoading`, `MoviesLoaded`, `MoviesError`.
+- `lib/blocs/movies/movies_bloc.dart` — `MoviesBloc` с обработчиком на каждое событие. Операции со списком не меняют `current.movies` на месте, а выдают новое состояние с новым списком.
+- `MoviesBloc`: пустой поисковый запрос возвращает `MoviesInitial` (на экране снова подсказка), а ответ на устаревший запрос отбрасывается (`_latestQuery`) — Bloc выполняет обработчики параллельно, и медленный старый ответ мог бы затереть новый.
+- `HomeScreen`: pull-to-refresh — `RefreshIndicator` вокруг списка «Все фильмы» отправляет `RefreshMovies` и ждёт следующего состояния (`bloc.stream.first`).
+
+### Изменено
+- `lib/main.dart`: вместо `ChangeNotifierProvider(MoviesProvider)` — `BlocProvider(create: (_) => MoviesBloc(MovieApiService())..add(LoadMovies()))`.
+- `HomeScreen`: тело экрана — `BlocBuilder<MoviesBloc, MoviesState>`; перемешивание, удаление и добавление отправляют события. Вызов `loadMovies()` из `initState` удалён — загрузку запускает `LoadMovies` при создании блока.
+- `SearchScreen`: создаёт собственный `MoviesBloc` через `BlocProvider`, а поле ввода и debounce переехали в `_SearchView`. Тело — `BlocBuilder`: `MoviesInitial` → подсказка, `MoviesLoading` → индикатор, `MoviesError` → текст ошибки, пустой результат → «Ничего не найдено».
+
+### Удалено
+- `lib/providers/movies_provider.dart`.
+
+### Известное ограничение
+- Если pull-to-refresh завершился ошибкой, весь список заменяется экраном ошибки с «Повторить» — так написано в задании (`RefreshMovies` выдаёт `MoviesError`).
+
+### Проверка
+- `flutter analyze` — без замечаний.
+- Временные тесты (удалены после проверки) с подменой сети через `MockClient`:
+  - блок: `RemoveMovie` и `ShuffleMovies` не меняют список предыдущего состояния; при запросах «slow» → «fast» выдаётся только результат «fast»; пустой запрос даёт `MoviesInitial`;
+  - главный экран: индикатор → список; удаление свайпом без ошибок `Dismissible`; перемешивание; добавление фильма; pull-to-refresh делает новый запрос, показывает `RefreshProgressIndicator` и скрывает его после ответа; ошибка 500 → «Повторить» → список;
+  - поиск: подсказка, результаты, «Ничего не найдено», очистка возвращает подсказку; список на главной после поиска не меняется.
+
 ## Лекция 12 — Управление состоянием (`lesson_12`)
 
 Список фильмов, избранное и личные оценки вынесены из виджетов в `Provider`. Избранное теперь по-настоящему хранится и видно на отдельной вкладке, а оценка сохраняется, откуда бы ни был открыт экран деталей.
