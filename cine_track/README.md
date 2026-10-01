@@ -36,3 +36,46 @@ flutter test --coverage    # то же с отчётом coverage/lcov.info
 # с настоящим TMDB, поэтому нужен ключ; рассчитан на чистую установку
 flutter test integration_test/app_test.dart --dart-define=TMDB_API_KEY=ваш_ключ
 ```
+
+## Релизная сборка
+
+Начиная с Лекции 21. Иконки и сплэш-экран генерируются из настроек в `pubspec.yaml` (исходники — `assets/icon/`, `assets/images/splash_logo*.png`):
+
+```bash
+dart run flutter_launcher_icons
+dart run flutter_native_splash:create
+```
+
+Подпись Android берётся из `android/key.properties` — он и файл `*.jks` в git не попадают:
+
+```properties
+storePassword=...
+keyPassword=...
+keyAlias=cinetrack-key
+storeFile=/полный/путь/к/cinetrack-release.jks
+```
+
+Без `key.properties` релиз подписывается debug-ключом: его можно запустить, но нельзя загрузить в магазин.
+
+```bash
+flutter build appbundle --release --obfuscate \
+  --split-debug-info=build/debug-info/android \
+  --dart-define=TMDB_API_KEY=ваш_ключ
+```
+
+Папку `build/debug-info/` сохраните — без неё не расшифровать стектрейсы обфусцированной сборки (`flutter symbolize`).
+
+### Свой сервер вместо TMDB
+
+Адреса API и картинок задаются при сборке, по умолчанию — TMDB. Для `cine_track_api` из репозитория курса:
+
+```bash
+flutter build web --release --no-web-resources-cdn \
+  --dart-define=TMDB_API_KEY=ключ_из_админки \
+  --dart-define=TMDB_BASE_URL=https://cinetrack-api.example.com/3 \
+  --dart-define=TMDB_IMAGE_BASE_URL=https://cinetrack-api.example.com/t/p/w500
+```
+
+Публикация веб-версии на сервер — `./deploy.sh web` в корне репозитория курса.
+
+Перед публикацией в Google Play замените `applicationId` `com.example.cine_track` в `android/app/build.gradle.kts` на свой: идентификаторы `com.example.*` магазин не принимает.

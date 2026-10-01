@@ -51,3 +51,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Ключ подписи релиза (Задание 21) — никогда не коммитить
+*.jks
+android/key.properties

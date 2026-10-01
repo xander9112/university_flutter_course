@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../../core/config/api_config.dart';
+
 part 'movie.freezed.dart';
 
 /// Фильм — доменная сущность. Чистый Dart: без разбора JSON, сети и БД.
@@ -26,5 +28,5 @@ abstract class Movie with _$Movie {
   String get rating => voteAverage?.toStringAsFixed(1) ?? '—';
 
   String get posterUrl =>
-      posterPath != null ? 'https://image.tmdb.org/t/p/w500$posterPath' : '';
+      posterPath != null ? '${ApiConfig.imageBaseUrl}$posterPath' : '';
 }

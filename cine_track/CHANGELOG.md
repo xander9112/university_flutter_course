@@ -2,6 +2,40 @@
 
 Каждая лекция курса — отдельная ветка `lesson_N`. Здесь описано, что изменилось в приложении по сравнению с предыдущей лекцией.
 
+## Лекция 21 — Публикация приложения (`lesson_21`)
+
+Финальная подготовка к релизу: иконка, сплэш-экран, имя приложения, подпись Android и релизная сборка с обфускацией.
+
+### Добавлено
+- Иконка `assets/icon/icon.png` (1024×1024, без прозрачности) — красный кадр плёнки с кнопкой Play на фоне `#1a1a2e`, нарисована скриптом. Для адаптивной иконки Android 8+ — передний слой `assets/icon/icon_foreground.png` и фон `#1a1a2e`.
+- Логотипы сплэша: `assets/images/splash_logo.png` (200×200) и `assets/images/splash_logo_android12.png` (960×960, логотип внутри центрального круга диаметром 640).
+- Dev-зависимость `flutter_launcher_icons: ^0.14.4`, зависимость `flutter_native_splash: ^2.4.8`; их настройки в `pubspec.yaml`. Сгенерированы иконки и сплэш для Android, iOS и web (`dart run flutter_launcher_icons`, `dart run flutter_native_splash:create`).
+- `android/app/build.gradle.kts`: чтение `android/key.properties`, `signingConfigs.release`, `isMinifyEnabled` и `isShrinkResources` для релиза.
+- `.gitignore`: `*.jks`, `android/key.properties`.
+- `README.md`: раздел «Релизная сборка».
+- `lib/core/config/api_config.dart` — `ApiConfig`: адрес API (`--dart-define=TMDB_BASE_URL`, по умолчанию `https://api.themoviedb.org/3`) и картинок (`TMDB_IMAGE_BASE_URL`, по умолчанию `https://image.tmdb.org/t/p/w500`). Так веб-версия, опубликованная на сервере курса, работает с `cine_track_api` (TMDB-совместимый сервер в репозитории курса) без регистрации на themoviedb.org. `AppModule` передаёт адрес в `MovieApiClient(dio, baseUrl: …)` — значение в `@RestApi` генератор читает при кодогенерации, и `--dart-define` в него не попал бы; `Movie.posterUrl` берёт адрес картинок из `ApiConfig`.
+
+### Изменено
+- `main()`: `FlutterNativeSplash.preserve(...)` сразу после `ensureInitialized()`, `FlutterNativeSplash.remove()` после `configureDependencies()`.
+- Имя под иконкой — «CineTrack» на Android (`android:label`), iOS (`CFBundleDisplayName`, было «Cine Track») и web (`<title>`, `manifest.json`); описание web-версии — «Персональный трекер фильмов».
+- `web/manifest.json`: `"orientation": "any"` вместо `"portrait-primary"` из шаблона — установленное веб-приложение поворачивается, как и требует Лекция 20.
+
+### Отличия от задания
+- **`environment` в `pubspec.yaml` не менялся** (`sdk: ^3.13.4`). Ограничение `'>=3.0.0 <4.0.0'` из задачи 1 понизило бы версию языка до 3.0 — и не скомпилировались бы приватные именованные параметры `required this._getPopularMovies` (Задание 15). Версия `1.0.0+1` стоит с Лекции 1.
+- **Подпись не ломает сборку без ключа.** В задании `keystoreProperties["keyAlias"] as String` выполняется при настройке Gradle всегда; если `key.properties` нет (клон репозитория, CI), любая сборка — даже `flutter run` в debug — падает. Здесь `signingConfigs.release` создаётся, только если файл есть, а иначе релиз подписывается debug-ключом.
+- **`flutter_native_splash` — в `dependencies`, а не в `dev_dependencies`:** его импортирует `main.dart`, а код из `lib/` может зависеть только от обычных зависимостей (так же сказано в документации пакета).
+- **Без `fullscreen: true`.** На iOS этот флаг записывает в `Info.plist` `UIStatusBarHidden = true` и `UIViewControllerBasedStatusBarAppearance = false` — статус-бар пропадает во всём приложении, а не только на сплэше (проверено на симуляторе); на Android 12+ флаг игнорируется.
+- **Отдельная картинка для `android_12`.** Android 12+ обрезает картинку сплэша по кругу: на эмуляторе у логотипа 200×200 из задания были срезаны углы. Картинка 960×960 с логотипом в круге 640 — по требованиям Android.
+- **Адаптивная иконка и `remove_alpha_ios: true`** — без адаптивной иконки лаунчер Android 8+ уменьшает обычную и кладёт в белый круг; App Store отклоняет иконки с альфа-каналом.
+- `applicationId` остался `com.example.cine_track`: Google Play такие идентификаторы не принимает, перед загрузкой его нужно заменить на свой (записано в README). Задача 7 (Google Play) не выполнялась — нужен аккаунт разработчика.
+
+### Проверка
+- `flutter analyze` — без замечаний; `flutter test` — 74 теста проходят.
+- Подпись: с временным keystore (создан в песочнице, удалён вместе с `key.properties`) `flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info/android` собирает `app-release.aab`, подписанный этим ключом (`keytool -printcert -jarfile`); символы — в `build/debug-info/android/`. Без `key.properties` проходят `flutter build apk --debug` и `--release` (debug-подпись).
+- Релизный APK (R8 + сжатие ресурсов) на эмуляторе Android 16: запуск без ошибок, сплэш на `#1a1a2e`, адаптивная иконка «CineTrack» в списке приложений, запрос к TMDB проходит (с фиктивным ключом — «Ошибка загрузки: 401»). Сценарий целиком с настоящим ключом не проходился — ключа нет.
+- iOS-симулятор (временный, удалён): иконка «CineTrack» на рабочем столе, сплэш с логотипом, после сплэша статус-бар виден.
+- `flutter build ios --simulator`, `flutter build web` проходят.
+
 ## Лекция 20 — Адаптивный UI (`lesson_20`)
 
 Приложение подстраивается под размер экрана: сетка фильмов и боковая навигация на широких экранах, отдельный макет экрана деталей в ландшафте, `SafeArea` на всех экранах.

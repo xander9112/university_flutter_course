@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
@@ -16,7 +17,10 @@ import 'features/movies/presentation/screens/movie_detail_screen.dart';
 import 'features/ratings/presentation/providers/ratings_provider.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  // Нативный сплэш держится, пока регистрируются зависимости
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
   if (kIsWeb) {
     // В браузере нет встроенного SQLite: sqflite_common_ffi_web запускает его
     // через WebAssembly (web/sqlite3.wasm, web/sqflite_sw.js) и хранит базу
@@ -24,6 +28,8 @@ Future<void> main() async {
     databaseFactory = databaseFactoryFfiWeb;
   }
   await configureDependencies(); // регистрируем все зависимости до runApp
+
+  FlutterNativeSplash.remove();
 
   runApp(
     MultiProvider(

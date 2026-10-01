@@ -3,7 +3,7 @@
          (src/debug/AndroidManifest.xml), а release без него не выйдет в сеть. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="cine_track"
+        android:label="CineTrack"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 
 import '../../features/movies/data/datasources/movie_api_client.dart';
+import '../config/api_config.dart';
 
 /// Регистрация классов из чужих пакетов и сгенерированных реализаций,
 /// на которые нельзя поставить аннотацию.
@@ -22,5 +23,8 @@ abstract class AppModule {
   }
 
   @lazySingleton
-  MovieApiClient movieApiClient(Dio dio) => MovieApiClient(dio);
+  // baseUrl передаётся здесь, а не только в @RestApi: аннотацию генератор
+  // читает при кодогенерации, и --dart-define в неё не попал бы.
+  MovieApiClient movieApiClient(Dio dio) =>
+      MovieApiClient(dio, baseUrl: ApiConfig.baseUrl);
 }

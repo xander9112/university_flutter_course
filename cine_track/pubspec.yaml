@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_bloc: ^9.1.1
+  flutter_native_splash: ^2.4.8
   freezed_annotation: ^3.1.0
   get_it: ^9.3.0
   injectable: ^3.0.0
@@ -37,10 +38,40 @@ dev_dependencies:
   retrofit_generator: ^10.2.11
   mocktail: ^1.0.5
   bloc_test: ^10.0.0
-
+  flutter_launcher_icons: ^0.14.4
 flutter:
   uses-material-design: true
 
   assets:
     - assets/images/
     - assets/animations/
+
+# Иконка приложения: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  min_sdk_android: 21
+  # Android 8+: адаптивная иконка — фон и передний слой отдельно, лаунчер
+  # сам обрезает её по форме (круг, сквиркл). Без неё лаунчер уменьшает
+  # обычную иконку и кладёт её в белый круг.
+  adaptive_icon_background: "#1a1a2e"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  remove_alpha_ios: true # App Store не принимает иконки с прозрачностью
+  web:
+    generate: true
+    image_path: "assets/icon/icon.png"
+    background_color: "#1a1a2e"
+    theme_color: "#1a1a2e"
+
+# Сплэш-экран: dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#1a1a2e"
+  image: assets/images/splash_logo.png
+  android_12:
+    # Android 12+ обрезает картинку сплэша по кругу: нужна 960×960,
+    # а логотип — внутри центрального круга диаметром 640
+    image: assets/images/splash_logo_android12.png
+    color: "#1a1a2e"
+  # fullscreen: true не используем: на iOS он прописывает в Info.plist
+  # UIStatusBarHidden для всего приложения — статус-бар пропадает и после сплэша
