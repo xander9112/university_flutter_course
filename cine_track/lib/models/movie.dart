@@ -19,6 +19,23 @@ class Movie {
     this.genreIds = const [],
   });
 
+  factory Movie.fromJson(Map<String, dynamic> json) {
+    return Movie(
+      id: json['id'] as int,
+      title: json['title'] as String,
+      overview: json['overview'] as String?,
+      posterPath: json['poster_path'] as String?,
+      backdropPath: json['backdrop_path'] as String?,
+      voteAverage: (json['vote_average'] as num?)?.toDouble(),
+      releaseDate: json['release_date'] as String? ?? '',
+      genreIds:
+          (json['genre_ids'] as List<dynamic>?)
+              ?.map((e) => e as int)
+              .toList() ??
+          [],
+    );
+  }
+
   String get year =>
       releaseDate.isNotEmpty ? releaseDate.substring(0, 4) : 'N/A';
 
