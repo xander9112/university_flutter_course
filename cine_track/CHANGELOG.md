@@ -2,6 +2,65 @@
 
 Каждая лекция курса — отдельная ветка `lesson_N`. Здесь описано, что изменилось в приложении по сравнению с предыдущей лекцией.
 
+## Лекция 15 — Clean Architecture (`lesson_15`)
+
+Проект разложен по фичам (`movies`, `favorites`, `ratings`, `main`) и трём слоям: `domain`, `data`, `presentation`. Поведение приложения не изменилось.
+
+### Новая структура `lib/`
+```
+core/theme/theme_provider.dart
+features/
+  main/presentation/screens/main_screen.dart
+  movies/
+    domain/      entities/movie.dart, repositories/movie_repository.dart,
+                 usecases/get_popular_movies.dart, usecases/search_movies.dart
+    data/        models/movie_dto.dart, datasources/movie_remote_datasource.dart,
+                 datasources/movie_local_datasource.dart, repositories/movie_repository_impl.dart
+    presentation/blocs/, screens/ (home, search, add_movie, movie_detail),
+                 widgets/ (movie_card, movie_poster, movie_preview_card, rating_dialog), genres.dart
+  favorites/
+    domain/      repositories/favorites_repository.dart, usecases/get_favorites.dart, usecases/toggle_favorite.dart
+    data/        datasources/favorites_database.dart, repositories/favorites_repository_impl.dart
+    presentation/providers/favorites_provider.dart, screens/favorites_screen.dart
+  ratings/
+    domain/      repositories/ratings_repository.dart, usecases/get_ratings.dart, usecases/set_rating.dart
+    data/        repositories/ratings_repository_impl.dart
+    presentation/providers/ratings_provider.dart
+app_dependencies.dart
+main.dart
+```
+Файлы перенесены через `git mv` — история сохранилась.
+
+### Добавлено
+- `Movie` — доменная сущность без `fromJson`. Разбор и сериализация JSON — в `MovieDto` (`fromJson`, `toJson` для кэша, `toEntity()`).
+- `MovieRepository` (интерфейс) и `MovieRepositoryImpl`: берёт фильмы из сети, кэширует, при ошибке отдаёт кэш.
+- `MovieRemoteDataSourceImpl` (вместо `MovieApiService`) получает `http.Client` через конструктор. `MovieLocalDataSourceImpl` (вместо `CacheService`) хранит список DTO: файл на Android/iOS, `SharedPreferences` в вебе.
+- Use cases: `GetPopularMovies`, `SearchMovies`, `GetFavorites`, `ToggleFavorite`, `GetRatings`, `SetRating`.
+- `FavoritesRepository` / `FavoritesRepositoryImpl` (поверх `FavoritesDatabase`), `RatingsRepository` / `RatingsRepositoryImpl` (поверх `SharedPreferences`, ключ `user_ratings`).
+- `lib/app_dependencies.dart` — ручная сборка: `createMoviesBloc()`, `createFavoritesProvider()`, `createRatingsProvider()`.
+
+### Изменено
+- `MoviesBloc` получает `GetPopularMovies` и `SearchMovies` через конструктор и не знает про сеть.
+- `FavoritesProvider` и `RatingsProvider` получают use cases через конструктор и не обращаются к БД и `SharedPreferences` напрямую.
+- `main.dart` и `SearchScreen` создают блок и провайдеры через функции из `app_dependencies.dart`.
+- Конструкторы с именованными параметрами для приватных полей записаны как `required this._getPopularMovies` (снаружи параметр называется `getPopularMovies:`).
+- `MovieRepositoryImpl`: если сеть не ответила и кэша нет, пробрасывается исходная ошибка (`Error.throwWithStackTrace`) — 401, «Не задан ключ» или «Нет соединения с сервером», — а не «Нет сети и нет сохранённых данных».
+- `MovieRemoteDataSourceImpl`: сетевая ошибка, как и в `MovieApiService` с Лекции 11, заменяется на «Нет соединения с сервером» — текст `ClientException` содержит URL вместе с `api_key`.
+
+### Удалено
+- Старые папки `lib/models`, `lib/services`, `lib/database`, `lib/providers`, `lib/blocs`, `lib/screens`, `lib/widgets`, `lib/data`, `lib/utils`, в том числе `mock_movies.dart` и `movie_utils.dart` из Лекции 3.
+
+### Отличия от кода в задании
+- Проверка незаданного ключа TMDB (подсказка из Задания 11) перенесена из `MovieApiService` в `MovieRemoteDataSourceImpl`.
+
+### Проверка
+- `flutter analyze` — без замечаний. Domain-слой не импортирует ни data, ни presentation, ни Flutter/сеть/БД; data не импортирует presentation; presentation не импортирует data.
+- Временные тесты (удалены после проверки; SQLite через временную `sqflite_common_ffi`, тоже удалена):
+  - репозиторий: без кэша — исходная ошибка 401; после успешного ответа кэш записан; при ответе 500 возвращается кэш;
+  - приложение, собранное через `create*`-функции: загрузка, сердце → вкладка «Избранное», оценка из избранного, поиск, удаление, добавление, тёмная тема; после «перезапуска» избранное и оценка восстанавливаются;
+  - сетевая ошибка не показывает `api_key`.
+- `flutter build web` проходит, в headless Chrome приложение запускается без ошибок.
+
 ## Лекция 14 — Хранение данных на устройстве (`lesson_14`)
 
 Данные переживают перезапуск: тема и личные оценки — в `SharedPreferences`, избранное — в SQLite, последний список популярных фильмов — в файле (в вебе — в `SharedPreferences`). Всё работает на трёх платформах: Android, iOS и веб.

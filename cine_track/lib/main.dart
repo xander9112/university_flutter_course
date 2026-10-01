@@ -5,15 +5,12 @@ import 'package:provider/provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
-import 'blocs/movies/movies_bloc.dart';
-import 'blocs/movies/movies_event.dart';
-import 'providers/favorites_provider.dart';
-import 'providers/ratings_provider.dart';
-import 'providers/theme_provider.dart';
-import 'screens/add_movie_screen.dart';
-import 'screens/main_screen.dart';
-import 'screens/movie_detail_screen.dart';
-import 'services/movie_api_service.dart';
+import 'app_dependencies.dart';
+import 'core/theme/theme_provider.dart';
+import 'features/main/presentation/screens/main_screen.dart';
+import 'features/movies/presentation/blocs/movies_event.dart';
+import 'features/movies/presentation/screens/add_movie_screen.dart';
+import 'features/movies/presentation/screens/movie_detail_screen.dart';
 
 void main() {
   if (kIsWeb) {
@@ -26,11 +23,9 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
-        BlocProvider(
-          create: (_) => MoviesBloc(MovieApiService())..add(LoadMovies()),
-        ),
-        ChangeNotifierProvider(create: (_) => FavoritesProvider()),
-        ChangeNotifierProvider(create: (_) => RatingsProvider()),
+        BlocProvider(create: (_) => createMoviesBloc()..add(LoadMovies())),
+        ChangeNotifierProvider(create: (_) => createFavoritesProvider()),
+        ChangeNotifierProvider(create: (_) => createRatingsProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const MyApp(),
