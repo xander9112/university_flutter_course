@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository purpose
 
-This is **not a software project** — it is the content repository for a university-level Flutter/Dart course ("Курс по Flutter"). There is no code to build, lint, or test. All work here is authoring/editing course materials in Markdown (and one master `.docx`).
+This is primarily the content repository for a university-level Flutter/Dart course ("Курс по Flutter"): most work here is authoring/editing course materials in Markdown (and one master `.docx`). The only code lives in the folders listed under "Code in this repository" below.
 
 ## Structure
 
@@ -23,6 +23,15 @@ Folder numbers (`Лекция N - ...`) match the numbering used inside the file
 ### The CineTrack thread
 
 Starting around folder 5, `задание.md` files are not standalone exercises — they are sequential steps building a single running app called **CineTrack** (a movie-tracking app). Each assignment's "Контекст" section explicitly continues from the previous one (e.g. widgets → navigation → Provider-based state → HTTP → BLoC → persistence → clean architecture). When editing or writing a `задание.md`, check the neighboring lecture folders (by internal numbering, not folder numbering) to keep the CineTrack storyline consistent — introducing a feature/dependency earlier than the lecture that teaches it will break the sequence.
+
+### Code in this repository
+
+Besides the course materials, the repo holds code that is *not* part of any lecture:
+
+- `cine_track/` — the reference CineTrack app, one branch per lecture (`lesson_N`), not on `main`.
+- `cine_track_api/` — TMDB-compatible server (Payload CMS 3 + Postgres, pnpm) so students don't have to register on themoviedb.org. The API contract is `API.md` at the repo root.
+- `cine_track_web/` — nginx image serving the Flutter web build of `cine_track` (branch `lesson_21`).
+- `deploy.sh` (build and push images: `./deploy.sh api|web`) and `portainer-stack.yml` (server stack).
 
 ### Duplicate `*_ter_conflict__<timestamp>.md` / `.docx` files
 

@@ -1,0 +1,72 @@
+# Стек CineTrack для Portainer (Stacks → Add stack → Web editor).
+# Образы собираются и пушатся с Mac через ./deploy.sh api и ./deploy.sh web (push идёт на
+# 192.168.1.150:5000 напрямую, pull — через домен registry.xander9112.keenetic.link: это то же
+# хранилище). После каждого ./deploy.sh обновите теги образов ниже.
+#
+# Переменные окружения стека (Stacks → Environment variables):
+#   POSTGRES_PASSWORD   — пароль базы
+#   PAYLOAD_SECRET      — любая длинная случайная строка (openssl rand -base64 32); подписывает
+#                         сессии админки, при смене все входы сбрасываются
+#   TMDB_IMPORT_API_KEY — необязательно: ключ TMDB преподавателя для кнопки импорта в админке
+#
+# Наружу смотрят два порта, их цепляет Nginx Proxy Manager (HTTPS, Let's Encrypt):
+#   5200 — cine_track_api: отдельный (под)домен целиком, например cinetrack-api.example.com.
+#          Именно корень домена, а не путь: API (/3/...), картинки (/t/p/...), админка (/admin)
+#          и её ресурсы (/_next, /api) лежат в разных путях от корня.
+#   5210 — веб-версия cine_track, например cinetrack.example.com. Адрес API в неё встроен при
+#          сборке (CINETRACK_API_URL в ./deploy.sh web).
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: cinetrack_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cinetrack
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: cinetrack
+    volumes:
+      - cinetrack_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cinetrack -d cinetrack"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - cinetrack
+
+  api:
+    image: registry.xander9112.keenetic.link/cinetrack-api:1.0.0
+    container_name: cinetrack_api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://cinetrack:${POSTGRES_PASSWORD}@db:5432/cinetrack
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      TMDB_IMPORT_API_KEY: ${TMDB_IMPORT_API_KEY:-}
+    volumes:
+      # Загруженные постеры; без volume пропадут при обновлении образа
+      - cinetrack_media:/app/media
+    ports:
+      - "5200:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - cinetrack
+
+  web:
+    image: registry.xander9112.keenetic.link/cinetrack-web:1.0.0-1
+    container_name: cinetrack_web
+    restart: unless-stopped
+    ports:
+      - "5210:80"
+    networks:
+      - cinetrack
+
+networks:
+  cinetrack:
+    driver: bridge
+
+volumes:
+  cinetrack_db_data:
+  cinetrack_media:

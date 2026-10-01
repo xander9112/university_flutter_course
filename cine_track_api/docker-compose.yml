@@ -1,0 +1,46 @@
+# Локальный запуск CineTrack API целиком в Docker:
+#   cp .env.example .env   # задайте PAYLOAD_SECRET
+#   docker compose up -d --build
+# Админка — http://localhost:5200/admin, API — http://localhost:5200/3/movie/popular?api_key=…
+#
+# Только база для `pnpm dev`: docker compose up -d db (порт 5434 на хосте).
+# На сервере используется portainer-stack.yml в корне репозитория — с готовыми образами.
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cinetrack
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cinetrack}
+      POSTGRES_DB: cinetrack
+    ports:
+      - "5434:5432"
+    volumes:
+      - cinetrack_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cinetrack -d cinetrack"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://cinetrack:${POSTGRES_PASSWORD:-cinetrack}@db:5432/cinetrack
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:?Задайте PAYLOAD_SECRET в .env}
+      TMDB_IMPORT_API_KEY: ${TMDB_IMPORT_API_KEY:-}
+      TMDB_IMPORT_API_URL: ${TMDB_IMPORT_API_URL:-}
+      TMDB_IMPORT_IMAGES_URL: ${TMDB_IMPORT_IMAGES_URL:-}
+    ports:
+      - "5200:3000"
+    volumes:
+      - cinetrack_media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  cinetrack_db_data:
+  cinetrack_media:
