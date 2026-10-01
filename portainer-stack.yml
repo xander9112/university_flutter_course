@@ -7,7 +7,9 @@
 #   POSTGRES_PASSWORD   — пароль базы
 #   PAYLOAD_SECRET      — любая длинная случайная строка (openssl rand -base64 32); подписывает
 #                         сессии админки, при смене все входы сбрасываются
-#   TMDB_IMPORT_API_KEY — необязательно: ключ TMDB преподавателя для кнопки импорта в админке
+#   TMDB_IMPORT_ACCESS_TOKEN — необязательно: API Read Access Token TMDB для кнопок импорта
+#                         в админке («100 лучших за 40 лет», «Популярные»); вместо него можно
+#                         задать TMDB_IMPORT_API_KEY (API Key v3)
 #
 # Nginx Proxy Manager: один Proxy Host cine-track.xander9112.keenetic.link → порт 5210 (web),
 # HTTPS через Let's Encrypt, без Custom locations. nginx веб-версии сам проксирует пути API
@@ -35,12 +37,13 @@ services:
       - cinetrack
 
   api:
-    image: registry.xander9112.keenetic.link/cinetrack-api:1.1.0
+    image: registry.xander9112.keenetic.link/cinetrack-api:1.2.0
     container_name: cinetrack_api
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://cinetrack:${POSTGRES_PASSWORD}@db:5432/cinetrack
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      TMDB_IMPORT_ACCESS_TOKEN: ${TMDB_IMPORT_ACCESS_TOKEN:-}
       TMDB_IMPORT_API_KEY: ${TMDB_IMPORT_API_KEY:-}
     volumes:
       # Загруженные постеры; без volume пропадут при обновлении образа

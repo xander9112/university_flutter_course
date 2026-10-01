@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { importFromTmdb } from '../endpoints/importFromTmdb'
+import { startTmdbImport, tmdbImportStatus } from '../endpoints/importFromTmdb'
 import { importFromZip } from '../endpoints/importFromZip'
 import { GENRES } from '../lib/genres'
 
@@ -37,7 +37,12 @@ export const Movies: CollectionConfig = {
     {
       path: '/import-tmdb',
       method: 'post',
-      handler: importFromTmdb,
+      handler: startTmdbImport,
+    },
+    {
+      path: '/import-tmdb',
+      method: 'get',
+      handler: tmdbImportStatus,
     },
     {
       path: '/import-zip',

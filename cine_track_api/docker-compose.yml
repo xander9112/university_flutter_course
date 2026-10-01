@@ -30,6 +30,7 @@ services:
     environment:
       DATABASE_URL: postgresql://cinetrack:${POSTGRES_PASSWORD:-cinetrack}@db:5432/cinetrack
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:?Задайте PAYLOAD_SECRET в .env}
+      TMDB_IMPORT_ACCESS_TOKEN: ${TMDB_IMPORT_ACCESS_TOKEN:-}
       TMDB_IMPORT_API_KEY: ${TMDB_IMPORT_API_KEY:-}
       TMDB_IMPORT_API_URL: ${TMDB_IMPORT_API_URL:-}
       TMDB_IMPORT_IMAGES_URL: ${TMDB_IMPORT_IMAGES_URL:-}
