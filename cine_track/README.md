@@ -23,3 +23,16 @@ flutter run --dart-define=TMDB_API_KEY=ваш_ключ
 ```bash
 dart run build_runner build --delete-conflicting-outputs
 ```
+
+## Тесты
+
+Начиная с Лекции 18:
+
+```bash
+flutter test               # unit- и widget-тесты (test/)
+flutter test --coverage    # то же с отчётом coverage/lcov.info
+
+# интеграционный тест (integration_test/) — на эмуляторе или устройстве,
+# с настоящим TMDB, поэтому нужен ключ; рассчитан на чистую установку
+flutter test integration_test/app_test.dart --dart-define=TMDB_API_KEY=ваш_ключ
+```

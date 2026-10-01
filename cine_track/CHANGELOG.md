@@ -2,6 +2,39 @@
 
 Каждая лекция курса — отдельная ветка `lesson_N`. Здесь описано, что изменилось в приложении по сравнению с предыдущей лекцией.
 
+## Лекция 18 — Основы тестирования (`lesson_18`)
+
+Код приложения не менялся — добавлены тесты трёх уровней: unit, widget и integration.
+
+### Добавлено
+- Dev-зависимости `mocktail: ^1.0.5`, `bloc_test: ^10.0.0`, `integration_test` (из SDK).
+- Тесты из задания:
+  - `test/mocks/mock_movie_repository.dart`;
+  - `get_popular_movies_test.dart` — успех и проброс ошибки;
+  - `movies_bloc_test.dart` — `load`: Loading → Loaded и Loading → Error;
+  - `movie_card_test.dart` — название, год, рейтинг, нажатие на сердце;
+  - `favorites_screen_test.dart` — пустой список;
+  - `integration_test/app_test.dart` — главный экран → детали → назад → в избранное → вкладка «Избранное».
+- Тесты сверх задания — без них критерий «покрытие domain и presentation не менее 70%» не выполняется (тесты из задания дают около 8%):
+  - `test/mocks/mocks.dart` — общие моки use cases, провайдеров и `MockMoviesBloc` (`MockBloc` из bloc_test);
+  - domain: `movie_test.dart` (геттеры, `==`, `copyWith`), `search_movies_test.dart`, `favorites_usecases_test.dart`, `ratings_usecases_test.dart`;
+  - `movies_bloc_test.dart` дополнен: refresh (в том числе с теми же фильмами — `Completer` завершается без нового состояния), поиск (обрезка пробелов, пустой запрос, ошибка, отброс устаревшего ответа), добавление, удаление, перемешивание;
+  - `favorites_provider_test.dart`, `ratings_provider_test.dart`;
+  - экраны: `home_screen_test.dart` (загрузка, ошибка и «Повторить», тап, двойной тап, «+», свайп с подтверждением и отменой, pull-to-refresh, кнопки AppBar), `search_screen_test.dart` (debounce, результаты, «Ничего не найдено», ошибка; блок из GetIt с моками), `movie_detail_screen_test.dart` (жанры, заглушки, диалог оценки), `add_movie_screen_test.dart` (валидация, возврат фильма), `main_screen_test.dart` (вкладки), непустой `FavoritesScreen`.
+- `README.md`: как запускать тесты.
+
+### Изменено
+- `freezed` в `pubspec.lock` — 4.0.1 вместо 4.0.2: `bloc_test` тянет пакет `test`, который с текущим Flutter SDK несовместим с `analyzer` 14, нужным `freezed` 4.0.2. Ограничение `^4.0.1` в `pubspec.yaml` прежнее; сгенерированный код не изменился.
+
+### Отличия от задания
+- В интеграционном тесте после тапа по карточке и по сердцу добавлено `await tester.pump(kDoubleTapTimeout)`. У карточки на главном экране есть `onDoubleTap` (Задание 9), поэтому одиночный тап засчитывается только через 300 мс, а `pumpAndSettle` таймеры не ждёт — без паузы экран деталей не открывается и тест падает.
+- Проверка «сердце стало заполненным» ищет иконку внутри первой карточки (`find.descendant`). `find.byIcon(Icons.favorite)` из задания находит и иконку вкладки «Избранное» в нижней панели, поэтому проходит даже без нажатия.
+
+### Проверка
+- `flutter test` — 59 тестов проходят; `flutter analyze` — без замечаний.
+- `flutter test --coverage`: слои domain и presentation (без `*.g.dart`, `*.freezed.dart`) — 398 из 414 строк, около 96%.
+- Интеграционный сценарий запущен на iOS-симуляторе (временный, удалён) с подменным адаптером Dio вместо сети — проходит; без паузы `kDoubleTapTimeout` падал на открытии экрана деталей. С настоящим TMDB не запускался: нет сети и ключа.
+
 ## Лекция 17 — Генерация кода (`lesson_17`)
 
 Ручной бойлерплейт заменён кодогенерацией: модели, события и состояния — на Freezed и json_serializable, HTTP-клиент `http` — на Dio с API-клиентом Retrofit.
