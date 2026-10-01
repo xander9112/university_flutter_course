@@ -2,6 +2,24 @@
 
 Каждая лекция курса — отдельная ветка `lesson_N`. Здесь описано, что изменилось в приложении по сравнению с предыдущей лекцией.
 
+## Лекция 4 — Dart: ООП (`lesson_4`)
+
+Задание выполняется на чистом Dart, само приложение не изменилось.
+
+### Добавлено
+- `dart_exercises/lesson_4.dart` — решения пяти упражнений задания:
+  1. Абстрактный `Shape` с абстрактным `area()` и конкретным `describe()`; наследники `Circle` и `Rectangle`.
+  2. Mixin `Printable` с методом `printInfo()`: выводит `runtimeType` и поля из геттера `printableFields`. Класс задаёт этот геттер сам. Подключён к учебному `Movie(title, year, rating)` через `with`.
+  3. `Repository<T>`: приватный `_items`, `add`, `findById` (`null` при индексе вне диапазона, в том числе отрицательном), `getAll` (возвращает копию). Проверено на `Movie` и `String`.
+  4. `extension MovieListExtension on List<Movie>` с методом `sortedByRating()`: возвращает новый список, исходный не меняется.
+  5. `enum MovieGenre` (`action`, `comedy`, `drama`, `sciFi`) с полем `label`, `const`-конструктором и геттером `description`. В `Movie` добавлено поле `genre` (именованный параметр, по умолчанию `MovieGenre.action`), поэтому вызов `Movie('Mad Max', 2015, 8.1)` из задания компилируется.
+
+Учебный `Movie` из этого файла не связан с моделью `lib/models/movie.dart` из Лекции 3.
+
+### Проверка
+- `dart run dart_exercises/lesson_4.dart` — вывод совпадает с ожидаемым в задании.
+- `flutter analyze` — без замечаний.
+
 ## Лекция 3 — Dart: Null Safety (`lesson_3`)
 
 Фильмы теперь описываются типизированной моделью `Movie` вместо `Map<String, double>` из Лекции 2. Экранов пока нет, модель проверяется через консоль.
