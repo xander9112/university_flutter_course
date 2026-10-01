@@ -7,6 +7,7 @@ import '../blocs/movies_bloc.dart';
 import '../blocs/movies_event.dart';
 import '../blocs/movies_state.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/widgets/loading_animation.dart';
 import '../widgets/movie_card.dart';
 
 class SearchScreen extends StatelessWidget {
@@ -54,7 +55,7 @@ class _SearchViewState extends State<_SearchView> {
       return const Center(child: Text('Введите название фильма'));
     }
     if (state is MoviesLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: LoadingAnimation(size: 64));
     }
     if (state is MoviesError) {
       return Center(

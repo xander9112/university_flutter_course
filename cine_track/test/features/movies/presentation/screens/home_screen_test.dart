@@ -9,6 +9,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cine_track/core/theme/theme_provider.dart';
+import 'package:cine_track/core/widgets/loading_animation.dart';
 import 'package:cine_track/features/favorites/presentation/providers/favorites_provider.dart';
 import 'package:cine_track/features/movies/domain/entities/movie.dart';
 import 'package:cine_track/features/movies/presentation/blocs/movies_bloc.dart';
@@ -78,7 +79,7 @@ void main() {
 
   testWidgets('во время загрузки показывает индикатор', (tester) async {
     await pumpHome(tester, const MoviesState.loading());
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(LoadingAnimation), findsOneWidget);
   });
 
   testWidgets('ошибка: текст и кнопка «Повторить» отправляет load', (

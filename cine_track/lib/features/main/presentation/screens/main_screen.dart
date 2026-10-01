@@ -29,7 +29,25 @@ class _MainScreenState extends State<MainScreen> {
       // IndexedStack держит все вкладки в дереве и показывает только активную.
       // С `body: _screens[_currentIndex]` HomeScreen уничтожался бы при уходе
       // на другую вкладку — вместе с добавленными фильмами и личными оценками.
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          // Скрытые вкладки остаются в дереве, и их Hero тоже участвуют
+          // в переходе: фильм с главной и из избранного дал бы два Hero
+          // с одним тегом. HeroMode выключает Hero во всех вкладках, кроме
+          // активной. А TickerMode останавливает их анимации: IndexedStack
+          // сам этого не делает, и Lottie пустого избранного или индикатор
+          // загрузки поиска крутились бы на скрытой вкладке всё время.
+          for (var i = 0; i < _screens.length; i++)
+            HeroMode(
+              enabled: i == _currentIndex,
+              child: TickerMode(
+                enabled: i == _currentIndex,
+                child: _screens[i],
+              ),
+            ),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),

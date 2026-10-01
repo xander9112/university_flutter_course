@@ -8,7 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cine_track/core/di/injection.dart';
 import 'package:cine_track/core/theme/theme_provider.dart';
 import 'package:cine_track/features/favorites/presentation/providers/favorites_provider.dart';
+import 'package:cine_track/features/favorites/presentation/screens/favorites_screen.dart';
 import 'package:cine_track/features/main/presentation/screens/main_screen.dart';
+import 'package:cine_track/features/movies/presentation/screens/home_screen.dart';
 import 'package:cine_track/features/movies/presentation/blocs/movies_bloc.dart';
 import 'package:cine_track/features/movies/presentation/blocs/movies_state.dart';
 
@@ -62,5 +64,12 @@ void main() {
     await tester.tap(find.text('Главная'));
     await tester.pump();
     expect(find.text('Популярное'), findsOneWidget);
+
+    // Анимации скрытых вкладок остановлены (Задание 19)
+    bool tickersOn(Type screen) => TickerMode.valuesOf(
+      tester.element(find.byType(screen, skipOffstage: false)),
+    ).enabled;
+    expect(tickersOn(HomeScreen), isTrue);
+    expect(tickersOn(FavoritesScreen), isFalse);
   });
 }

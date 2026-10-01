@@ -9,6 +9,7 @@ import '../blocs/movies_state.dart';
 import '../../domain/entities/movie.dart';
 import '../../../favorites/presentation/providers/favorites_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../../../core/widgets/loading_animation.dart';
 import '../widgets/movie_card.dart';
 import '../widgets/movie_preview_card.dart';
 
@@ -85,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // без обработки здесь не скомпилируется.
   Widget _buildBody(BuildContext context, MoviesState state) => state.when(
     initial: () => const SizedBox(),
-    loading: () => const Center(child: CircularProgressIndicator()),
+    loading: () => const Center(child: LoadingAnimation(size: 64)),
     error: (message) => _buildError(context, message),
     loaded: (movies) => _buildMovies(context, movies),
   );

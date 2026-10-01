@@ -54,8 +54,44 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const MainScreen(),
-        '/movie-detail': (context) => const MovieDetailScreen(),
         '/add-movie': (context) => const AddMovieScreen(),
+      },
+      // Маршрута '/movie-detail' нет в routes: таблица всегда открывает экран
+      // стандартным переходом, а onGenerateRoute позволяет задать свой.
+      onGenerateRoute: (settings) {
+        if (settings.name == '/movie-detail') {
+          // Экран деталей ничего не возвращает: оценка сохраняется
+          // в RatingsProvider (Задание 12).
+          return PageRouteBuilder<void>(
+            settings:
+                settings, // передаём arguments в ModalRoute экрана деталей
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const MovieDetailScreen(),
+            transitionDuration: const Duration(milliseconds: 400),
+            reverseTransitionDuration: const Duration(milliseconds: 300),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  // Слайд снизу вверх
+                  final slideAnimation =
+                      Tween<Offset>(
+                        begin: const Offset(0, 1), // начало: ниже экрана
+                        end: Offset.zero,
+                      ).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOut,
+                        ),
+                      );
+
+                  // Одновременно плавное появление
+                  return SlideTransition(
+                    position: slideAnimation,
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+          );
+        }
+        return null; // неизвестный маршрут
       },
     );
   }

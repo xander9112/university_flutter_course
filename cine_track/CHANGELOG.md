@@ -2,6 +2,38 @@
 
 Каждая лекция курса — отдельная ветка `lesson_N`. Здесь описано, что изменилось в приложении по сравнению с предыдущей лекцией.
 
+## Лекция 19 — Анимации (`lesson_19`)
+
+Добавлены анимации: Hero-переход постера, появление карточек, анимированное сердце, свой индикатор загрузки, слайд-переход на экран деталей и Lottie на пустом экране избранного.
+
+### Добавлено
+- `lib/features/movies/presentation/widgets/favorite_button.dart` — `FavoriteButton`: `AnimatedSwitcher` + `ScaleTransition`, у иконки `ValueKey<bool>(isFavorite)`.
+- `lib/core/widgets/loading_animation.dart` — `LoadingAnimation`: `AnimationController` (1,2 с, `repeat()`), `Tween` 0 → 2π, `AnimatedBuilder` + `Transform.rotate`; контроллер освобождается в `dispose()`.
+- Зависимость `lottie: ^3.6.1`, папка `assets/animations/` в `pubspec.yaml`.
+- `assets/animations/empty_favorites.json` — простая Lottie-анимация (пульсирующее контурное сердце), написанная вручную: файл с lottiefiles.com не скачивался, у них своя лицензия.
+- Тесты: `favorite_button_test.dart` (вызов `onToggle`, обе иконки в середине перехода, масштаб 0,5), `loading_animation_test.dart` (четверть оборота за 300 мс, `Ticker` останавливается при удалении), `main_test.dart` (настоящий `MyApp`: слайд-переход, `arguments` доходят до экрана деталей, нет ошибки Hero), в `movie_card_test.dart` — появление карточки.
+
+### Изменено
+- `MovieCard` стал `StatefulWidget`: `AnimatedOpacity` 0 → 1 за 500 мс, запуск в `addPostFrameCallback`. Постер обёрнут в `Hero(tag: 'poster-${movie.id}')`, сердце — `FavoriteButton`.
+- `MovieDetailScreen`: постер в `Hero` с тем же тегом. Лента «Популярное» (`MoviePreviewCard`) без `Hero`, чтобы теги не повторялись.
+- `HomeScreen`, `SearchScreen`: в состоянии загрузки — `LoadingAnimation(size: 64)` вместо `CircularProgressIndicator`.
+- `main.dart`: `'/movie-detail'` убран из `routes` и создаётся в `onGenerateRoute` — `PageRouteBuilder<void>` со `SlideTransition` снизу и `FadeTransition` (400 мс вперёд, 300 мс назад), `settings: settings` передаёт фильм.
+- `FavoritesScreen`: пустое состояние — Lottie-анимация и две подписи.
+- `MainScreen`: каждая вкладка `IndexedStack` обёрнута в `HeroMode` и `TickerMode` с `enabled: i == _currentIndex`.
+- Тест «во время загрузки показывает индикатор» ищет `LoadingAnimation`.
+
+### Отличия от задания
+- **`HeroMode` в `MainScreen` — в задании этого нет, но без него приложение падает.** `IndexedStack` из Задания 10 держит в дереве все вкладки, и `Hero` скрытых вкладок тоже участвуют в переходе. Если фильм есть и на главной, и в избранном, при открытии деталей Flutter бросает «There are multiple heroes that share the same tag within a subtree» (`poster-1`) — воспроизведено тестом.
+- **`TickerMode` в `MainScreen` — тоже не из задания.** `IndexedStack` не останавливает анимации скрытых вкладок, поэтому Lottie пустого избранного (и `LoadingAnimation` поиска) крутились бы всё время, пока открыта другая вкладка, — лишняя нагрузка на процессор и батарею. Обнаружено в Лекции 20: `pumpAndSettle` не дожидался конца анимаций на главном экране. В `main_screen_test.dart` добавлена проверка, что у скрытой вкладки `TickerMode` выключен.
+- Постер в карточке — прежний `MoviePoster` 80×120 внутри `Hero`, а не `Image.network` 120×170 из задания: размер карточки не меняется, а фильм без постера сразу показывает заглушку, не запрашивая пустой URL.
+- У `FavoriteButton` сохранена подсказка `tooltip` («В избранное» / «Убрать из избранного»), как у прежней кнопки.
+
+### Проверка
+- `flutter test` — 65 тестов проходят; `flutter analyze` — без замечаний; покрытие domain и presentation выше 90%.
+- Интеграционный сценарий из Задания 18 на временном iOS-симуляторе с подменным адаптером Dio — проходит (Hero, слайд-переход, `pageBack`, анимированное сердце).
+- Lottie-файл разбирается `LottieComposition.fromBytes` (2 с, 1 слой); кадры экрана пустого избранного отрисованы в golden-тесте (временный, удалён).
+- `flutter build apk --debug`, `flutter build ios --simulator`, `flutter build web` проходят; в headless Chrome вкладка «Избранное» показывает анимацию без ошибок.
+
 ## Лекция 18 — Основы тестирования (`lesson_18`)
 
 Код приложения не менялся — добавлены тесты трёх уровней: unit, widget и integration.

@@ -57,4 +57,32 @@ void main() {
 
     verify(() => mockFavorites.toggleFavorite(tMovie)).called(1);
   });
+
+  // Сверх задания (Задание 19): появление карточки
+  testWidgets('MovieCard плавно появляется: opacity 0 → 1 за 500 мс', (
+    tester,
+  ) async {
+    await pumpCard(tester);
+    double opacity() =>
+        tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity;
+
+    // Первый кадр: карточка прозрачна, setState из addPostFrameCallback
+    // применится в следующем кадре.
+    expect(opacity(), 0.0);
+    await tester.pump();
+    expect(opacity(), 1.0); // цель анимации — 1
+    final fade = find.descendant(
+      of: find.byType(AnimatedOpacity),
+      matching: find.byType(FadeTransition),
+    );
+    expect(tester.widget<FadeTransition>(fade).opacity.value, 0.0);
+
+    await tester.pump(const Duration(milliseconds: 250));
+    final mid = tester.widget<FadeTransition>(fade).opacity.value;
+    expect(mid, greaterThan(0.0));
+    expect(mid, lessThan(1.0));
+
+    await tester.pumpAndSettle();
+    expect(tester.widget<FadeTransition>(fade).opacity.value, 1.0);
+  });
 }

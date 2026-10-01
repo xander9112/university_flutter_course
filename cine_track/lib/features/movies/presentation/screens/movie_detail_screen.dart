@@ -118,11 +118,14 @@ class MovieDetailScreen extends StatelessWidget {
   Widget _buildHeader(Movie movie) {
     return Stack(
       children: [
-        MoviePoster(
-          movie: movie,
-          width: double.infinity,
-          height: 300,
-          fallback: Container(height: 300, color: Colors.grey.shade800),
+        Hero(
+          tag: 'poster-${movie.id}', // тот же тег, что у постера в MovieCard
+          child: MoviePoster(
+            movie: movie,
+            width: double.infinity,
+            height: 300,
+            fallback: Container(height: 300, color: Colors.grey.shade800),
+          ),
         ),
         const Positioned.fill(
           child: DecoratedBox(

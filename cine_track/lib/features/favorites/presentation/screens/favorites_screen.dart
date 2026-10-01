@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/favorites_provider.dart';
@@ -14,7 +15,7 @@ class FavoritesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Избранное')),
       body: favorites.isEmpty
-          ? const Center(child: Text('Нет избранных фильмов'))
+          ? _buildEmpty()
           : ListView.builder(
               itemCount: favorites.length,
               itemBuilder: (context, index) {
@@ -29,6 +30,32 @@ class FavoritesScreen extends StatelessWidget {
                 );
               },
             ),
+    );
+  }
+
+  Widget _buildEmpty() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Lottie.asset(
+            'assets/animations/empty_favorites.json',
+            width: 200,
+            height: 200,
+            repeat: true,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Нет избранных фильмов',
+            style: TextStyle(fontSize: 18, color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Добавьте фильмы, нажав на ♥',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
     );
   }
 }
