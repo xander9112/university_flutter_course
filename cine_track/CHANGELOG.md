@@ -16,6 +16,7 @@
 - `lib/main.dart`: стартовый код заменён на минимальный `MyApp` — `MaterialApp` с заголовком `CineTrack` и текстом «CineTrack — скоро здесь будут фильмы» по центру экрана.
 - `lib/main.dart`: `debugShowCheckedModeBanner: false` — красная лента «DEBUG» в углу экрана скрыта.
 - `README.md`: описание проекта.
+- `.gitignore`: `.vscode/launch.json` и `.vscode/settings.json` — личные настройки VS Code (в `launch.json` позже будет лежать ключ TMDB, см. Лекцию 11).
 
 ### Проверка
 - `flutter analyze` — без замечаний.

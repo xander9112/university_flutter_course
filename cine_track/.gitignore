@@ -23,6 +23,11 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
+# Личные настройки VS Code. В launch.json может лежать
+# --dart-define=TMDB_API_KEY=... с настоящим ключом (см. Лекцию 11).
+.vscode/launch.json
+.vscode/settings.json
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
