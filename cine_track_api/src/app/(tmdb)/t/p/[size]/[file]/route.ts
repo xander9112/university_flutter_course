@@ -11,7 +11,10 @@ export const dynamic = 'force-dynamic'
 const SIZES = new Set(['w500', 'original'])
 
 const imageNotFound = (): Response =>
-  new Response('Not found', { status: 404, headers: { ...CORS_HEADERS, 'Content-Type': 'text/plain' } })
+  new Response('Not found', {
+    status: 404,
+    headers: { ...CORS_HEADERS, 'Content-Type': 'text/plain' },
+  })
 
 /** GET /t/p/<размер>/<файл> — картинки в том же формате пути, что image.tmdb.org (API.md, раздел 7). */
 export async function GET(

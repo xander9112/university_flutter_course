@@ -1,6 +1,7 @@
 import { addDataAndFileToRequest, type PayloadHandler, type PayloadRequest } from 'payload'
 
 import { genreValueOf, type GenreValue } from '../lib/genres'
+import { isReleaseDate, normalizeRating } from '../lib/movieData'
 
 /**
  * POST /api/movies/import-tmdb { pages: 1..10 } — загружает популярные фильмы из настоящего
@@ -100,23 +101,37 @@ export const importFromTmdb: PayloadHandler = async (req) => {
       results = body.results
     } catch (error) {
       // Текст ошибки fetch может содержать URL с ключом — наружу отдаём без него
-      errors.push(`Страница ${page}: ${error instanceof Error && error.message.startsWith('TMDB') ? error.message : 'нет соединения с TMDB'}`)
+      errors.push(
+        `Страница ${page}: ${error instanceof Error && error.message.startsWith('TMDB') ? error.message : 'нет соединения с TMDB'}`,
+      )
       break
     }
 
     for (const item of results) {
       try {
         const title = item.title || item.original_title || `Фильм ${item.id}`
-        const poster = await ensureImage(req, item.poster_path, 'w500', `tmdb-${item.id}-poster.jpg`, `${title} — постер`)
-        const backdrop = await ensureImage(req, item.backdrop_path, 'w780', `tmdb-${item.id}-backdrop.jpg`, `${title} — кадр`)
+        const poster = await ensureImage(
+          req,
+          item.poster_path,
+          'w500',
+          `tmdb-${item.id}-poster.jpg`,
+          `${title} — постер`,
+        )
+        const backdrop = await ensureImage(
+          req,
+          item.backdrop_path,
+          'w780',
+          `tmdb-${item.id}-backdrop.jpg`,
+          `${title} — кадр`,
+        )
         const data = {
           title,
           originalTitle: item.original_title || null,
           overview: item.overview?.trim() || null,
           poster,
           backdrop,
-          voteAverage: typeof item.vote_average === 'number' ? Math.round(item.vote_average * 10) / 10 : null,
-          releaseDate: /^\d{4}-\d{2}-\d{2}$/.test(item.release_date ?? '') ? item.release_date : null,
+          voteAverage: normalizeRating(item.vote_average),
+          releaseDate: isReleaseDate(item.release_date) ? item.release_date : null,
           genres: (item.genre_ids ?? [])
             .map(genreValueOf)
             .filter((value): value is GenreValue => value !== undefined),
@@ -136,7 +151,11 @@ export const importFromTmdb: PayloadHandler = async (req) => {
           await req.payload.update({ collection: 'movies', id: existing.docs[0].id, data, req })
           updated++
         } else {
-          await req.payload.create({ collection: 'movies', data: { ...data, published: true }, req })
+          await req.payload.create({
+            collection: 'movies',
+            data: { ...data, published: true },
+            req,
+          })
           created++
         }
       } catch (error) {

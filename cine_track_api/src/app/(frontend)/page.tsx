@@ -3,8 +3,8 @@ export default function HomePage() {
     <main>
       <h1>CineTrack API</h1>
       <p>
-        TMDB-совместимый API для учебного приложения CineTrack. Требования к формату — файл
-        API.md в репозитории курса.
+        TMDB-совместимый API для учебного приложения CineTrack. Требования к формату — файл API.md в
+        репозитории курса.
       </p>
       <ul>
         <li>

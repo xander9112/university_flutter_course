@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { importFromTmdb } from '../endpoints/importFromTmdb'
+import { importFromZip } from '../endpoints/importFromZip'
 import { GENRES } from '../lib/genres'
 
 /**
@@ -17,7 +18,10 @@ export const Movies: CollectionConfig = {
     defaultColumns: ['title', 'releaseDate', 'voteAverage', 'popularity', 'published'],
     group: 'Контент',
     components: {
-      beforeListTable: ['./components/ImportFromTmdb#ImportFromTmdb'],
+      beforeListTable: [
+        './components/ImportFromZip#ImportFromZip',
+        './components/ImportFromTmdb#ImportFromTmdb',
+      ],
     },
   },
   defaultSort: '-popularity',
@@ -34,6 +38,11 @@ export const Movies: CollectionConfig = {
       path: '/import-tmdb',
       method: 'post',
       handler: importFromTmdb,
+    },
+    {
+      path: '/import-zip',
+      method: 'post',
+      handler: importFromZip,
     },
   ],
   fields: [
@@ -124,6 +133,18 @@ export const Movies: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: 'Неопубликованные фильмы не попадают в API',
+      },
+    },
+    {
+      name: 'importKey',
+      label: 'Ключ импорта',
+      type: 'text',
+      unique: true,
+      index: true,
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        description: 'Поле key из movies.json: по нему повторная загрузка архива обновляет фильм',
       },
     },
     {

@@ -35,7 +35,7 @@ services:
       - cinetrack
 
   api:
-    image: registry.xander9112.keenetic.link/cinetrack-api:1.0.0
+    image: registry.xander9112.keenetic.link/cinetrack-api:1.1.0
     container_name: cinetrack_api
     restart: unless-stopped
     environment:
