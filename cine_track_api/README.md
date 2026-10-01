@@ -91,50 +91,61 @@ curl "http://localhost:5200/3/search/movie?api_key=$K&language=ru-RU&query=%D0%9
    | `PAYLOAD_SECRET` | длинная случайная строка: `openssl rand -base64 32`; подписывает сессии админки, при смене все входы сбрасываются |
    | `TMDB_IMPORT_API_KEY` | необязательно — ключ TMDB для кнопки импорта фильмов |
 
-3. Сервис `web` при первом запуске закомментируйте — его образа ещё нет.
+3. Если образа `web` ещё нет, сначала выполните шаг 5 с временным ключом: через `web` открывается и админка (шаг 3).
 4. **Deploy the stack**.
 
-### 3. Настроить Nginx Proxy Manager для API
+### 3. Настроить Nginx Proxy Manager
 
-Proxy Host, например `cinetrack-api.<домен>`: порт **5200** на сервере, во вкладке SSL — сертификат Let's Encrypt и Force SSL. HTTPS обязателен: приложение на Android и iOS по обычному HTTP не ходит.
+Веб-версия, API и админка живут на одном домене **`cine-track.xander9112.keenetic.link`**: nginx в контейнере `web` отдаёт приложение Flutter, а пути API проксирует в контейнер `api`.
 
-Нужен **отдельный (под)домен целиком**, не подпуть: API (`/3`), картинки (`/t/p`), админка (`/admin`) и её ресурсы (`/_next`, `/api`) лежат в разных путях от корня.
+| Путь | Куда |
+|---|---|
+| `/3/...`, `/t/p/...` | API и постеры — их запрашивает приложение |
+| `/admin` | админка Payload |
+| `/api/...`, `/_next/...` | REST и JS/CSS админки: она запрашивает их мимо `/admin` |
+| всё остальное | приложение Flutter |
 
-Проверка: `https://cinetrack-api.<домен>/health` отвечает `ok`.
+Поэтому в NPM нужен **один** Proxy Host:
+
+- Domain Names — `cine-track.xander9112.keenetic.link`;
+- Forward Hostname/IP — адрес сервера, Forward Port — **5210** (контейнер `web`), схема `http`;
+- SSL — сертификат Let's Encrypt, Force SSL. HTTPS обязателен: приложение на Android и iOS по обычному HTTP не ходит;
+- **Custom locations — пустые.** Если раньше `/admin` вёл на порт 5200, удалите это правило: тогда `/admin` открывался, но `/api` и `/_next` попадали в веб-версию, и админка падала с `Unexpected token '<', "<!DOCTYPE "... is not valid JSON` — вместо JSON ей приходила страница приложения.
+
+Порт 5200 (API напрямую) для NPM не нужен, он оставлен для отладки из локальной сети.
+
+Сервис `web` нужен уже на этом шаге — через него открывается и админка. Если его образа ещё нет, сначала соберите веб-версию с временным ключом (шаг 5 с любым `CINETRACK_API_KEY`), а после шага 4 пересоберите с настоящим ключом.
+
+Проверка: `https://cine-track.xander9112.keenetic.link/health` отвечает `ok` (это nginx веб-версии), а `https://cine-track.xander9112.keenetic.link/3/movie/popular` — JSON с ошибкой `401` (это уже API: ключа в запросе нет).
 
 ### 4. Наполнить API
 
-1. `https://cinetrack-api.<домен>/admin` — создать первого пользователя (администратора).
+1. `https://cine-track.xander9112.keenetic.link/admin` — создать первого пользователя (администратора).
 2. **API-ключи → Создать** — например «Курс 2026», скопировать значение ключа.
 3. **Фильмы** — добавить вручную или нажать «Импортировать популярные из TMDB» (нужен `TMDB_IMPORT_API_KEY`).
 
 ```bash
-curl "https://cinetrack-api.<домен>/3/movie/popular?api_key=<ключ>&language=ru-RU&page=1"
+curl "https://cine-track.xander9112.keenetic.link/3/movie/popular?api_key=<ключ>&language=ru-RU&page=1"
 ```
 
 ### 5. Опубликовать веб-версию
 
 ```bash
-CINETRACK_API_URL=https://cinetrack-api.<домен> \
-CINETRACK_API_KEY=<ключ из шага 4> \
-./deploy.sh web
+CINETRACK_API_KEY=<ключ из шага 4> ./deploy.sh web
 ```
 
-Скрипт соберёт Flutter из ветки `lesson_21` во временной копии (другая ветка — `WEB_BRANCH=...`) с адресом API и ключом и отправит образ `registry.xander9112.keenetic.link/cinetrack-web:<version>`, версия — из `cine_track/pubspec.yaml` (`1.0.0+1` → `1.0.0-1`).
+Скрипт соберёт Flutter из ветки `lesson_21` во временной копии (другая ветка — `WEB_BRANCH=...`) с адресом API `https://cine-track.xander9112.keenetic.link` (другой адрес — `CINETRACK_API_URL=...`) и ключом и отправит образ `registry.xander9112.keenetic.link/cinetrack-web:<version>`, версия — из `cine_track/pubspec.yaml` (`1.0.0+1` → `1.0.0-1`).
 
-### 6. Включить веб-версию
+### 6. Обновить стек
 
-1. В Portainer раскомментировать `web`, проверить теги образов — **Update the stack**.
-2. В Nginx Proxy Manager — второй Proxy Host, например `cinetrack.<домен>`: порт **5210**, сертификат Let's Encrypt.
-
-Приложение откроется на `https://cinetrack.<домен>`.
+В Portainer раскомментировать `web`, проверить теги образов — **Update the stack** (включите **Re-pull image**, если тег не изменился). Приложение — `https://cine-track.xander9112.keenetic.link`, админка — `https://cine-track.xander9112.keenetic.link/admin`.
 
 ### Обновления
 
 | Что изменилось | Что сделать |
 |---|---|
 | код API | поднять `version` в `cine_track_api/package.json` → `./deploy.sh api` → новый тег `cinetrack-api` в стеке → **Update the stack**. Миграции базы применятся сами при старте |
-| приложение, адрес API или ключ | `./deploy.sh web` с теми же переменными → обновить стек. Если `version` в `pubspec.yaml` не менялась, тег тот же — включите **Re-pull image** при обновлении |
+| приложение или ключ | `CINETRACK_API_KEY=… ./deploy.sh web` → обновить стек. Если `version` в `pubspec.yaml` не менялась, тег тот же — включите **Re-pull image** при обновлении |
 
 Если ключ, встроенный в веб-версию, отключить или удалить в админке, веб-версия перестанет загружать фильмы — пересоберите её с новым ключом.
 
@@ -147,8 +158,8 @@ CINETRACK_API_KEY=<ключ из шага 4> \
 ```bash
 flutter run \
   --dart-define=TMDB_API_KEY=ключ_курса \
-  --dart-define=TMDB_BASE_URL=https://cinetrack-api.example.com/3 \
-  --dart-define=TMDB_IMAGE_BASE_URL=https://cinetrack-api.example.com/t/p/w500
+  --dart-define=TMDB_BASE_URL=https://cine-track.xander9112.keenetic.link/3 \
+  --dart-define=TMDB_IMAGE_BASE_URL=https://cine-track.xander9112.keenetic.link/t/p/w500
 ```
 
 `--dart-define` для адресов поддерживает приложение из ветки `lesson_21`. В Заданиях 11–20 адрес пока записан в коде константой — какие места поменять, перечислено в разделе 9 [API.md](../API.md).

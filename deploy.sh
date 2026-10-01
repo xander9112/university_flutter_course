@@ -21,7 +21,8 @@
 #                на сервере упадёт с "exec format error")
 #
 # Только для web — адрес API и ключ встраиваются в сборку Flutter (--dart-define):
-#   CINETRACK_API_URL  — адрес cine_track_api без слэша в конце, например https://cinetrack-api.example.com
+#   CINETRACK_API_URL  — адрес API без слэша в конце (по умолчанию https://cine-track.xander9112.keenetic.link:
+#                        веб-версия и API на одном домене, nginx веб-версии проксирует пути API)
 #   CINETRACK_API_KEY  — ключ из админки API (коллекция «API-ключи»)
 #   WEB_BRANCH         — ветка, из которой собирается приложение (по умолчанию lesson_21 —
 #                        финальная версия курса)
@@ -66,9 +67,9 @@ deploy_api() {
 }
 
 deploy_web() {
-  : "${CINETRACK_API_URL:?Задайте CINETRACK_API_URL, например https://cinetrack-api.example.com}"
+  local api_url="${CINETRACK_API_URL:-https://cine-track.xander9112.keenetic.link}"
   : "${CINETRACK_API_KEY:?Задайте CINETRACK_API_KEY — ключ из админки API}"
-  local api_url="${CINETRACK_API_URL%/}"
+  api_url="${api_url%/}"
 
   if ! git rev-parse --verify --quiet "$WEB_BRANCH" >/dev/null; then
     echo "Нет ветки $WEB_BRANCH" >&2

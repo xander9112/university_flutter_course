@@ -9,12 +9,11 @@
 #                         сессии админки, при смене все входы сбрасываются
 #   TMDB_IMPORT_API_KEY — необязательно: ключ TMDB преподавателя для кнопки импорта в админке
 #
-# Наружу смотрят два порта, их цепляет Nginx Proxy Manager (HTTPS, Let's Encrypt):
-#   5200 — cine_track_api: отдельный (под)домен целиком, например cinetrack-api.example.com.
-#          Именно корень домена, а не путь: API (/3/...), картинки (/t/p/...), админка (/admin)
-#          и её ресурсы (/_next, /api) лежат в разных путях от корня.
-#   5210 — веб-версия cine_track, например cinetrack.example.com. Адрес API в неё встроен при
-#          сборке (CINETRACK_API_URL в ./deploy.sh web).
+# Nginx Proxy Manager: один Proxy Host cine-track.xander9112.keenetic.link → порт 5210 (web),
+# HTTPS через Let's Encrypt, без Custom locations. nginx веб-версии сам проксирует пути API
+# (/3, /t/p, /admin, /api, /_next) в контейнер api — веб-версия, API и админка
+# (https://cine-track.xander9112.keenetic.link/admin) живут на одном домене.
+# Порт 5200 (api напрямую) для NPM не нужен — он оставлен для отладки из локальной сети.
 
 services:
   db:
