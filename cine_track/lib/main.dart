@@ -10,11 +10,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'CineTrack',
       home: Scaffold(
-        body: Center(
-          child: Text('CineTrack — скоро здесь будут фильмы'),
-        ),
+        body: Center(child: Text('CineTrack — скоро здесь будут фильмы')),
       ),
     );
   }
