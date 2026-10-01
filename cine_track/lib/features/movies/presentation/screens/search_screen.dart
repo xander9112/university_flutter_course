@@ -95,7 +95,9 @@ class _SearchViewState extends State<_SearchView> {
           ),
         ),
       ),
-      body: BlocBuilder<MoviesBloc, MoviesState>(builder: _buildBody),
+      body: SafeArea(
+        child: BlocBuilder<MoviesBloc, MoviesState>(builder: _buildBody),
+      ),
     );
   }
 }

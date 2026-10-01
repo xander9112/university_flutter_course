@@ -96,4 +96,32 @@ void main() {
     verifyNever(() => setRating(any(), any()));
     expect(find.text('Вы ещё не оценили этот фильм'), findsOneWidget);
   });
+
+  // Задание 20: макет зависит от ориентации
+  Future<Rect> posterRect(WidgetTester tester, Size size) async {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pumpDetail(tester, movie);
+    return tester.getRect(find.byType(Hero));
+  }
+
+  testWidgets('портрет: постер сверху на всю ширину', (tester) async {
+    final rect = await posterRect(tester, const Size(400, 800));
+    expect(rect, const Rect.fromLTWH(0, 0, 400, 300));
+    expect(
+      find.ancestor(of: find.text('Оценить'), matching: find.byType(SafeArea)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('ландшафт: постер слева на 40% ширины и всю высоту', (
+    tester,
+  ) async {
+    final rect = await posterRect(tester, const Size(1000, 500));
+    expect(rect, const Rect.fromLTWH(0, 0, 400, 500));
+    // название — справа от постера, а не поверх него
+    expect(tester.getTopLeft(find.text('Inception')).dx, greaterThan(400));
+    expect(find.text('Оценить'), findsOneWidget);
+  });
 }

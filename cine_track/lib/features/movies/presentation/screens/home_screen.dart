@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -114,80 +115,77 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildMovies(BuildContext context, List<Movie> movies) {
     // Лента «Популярное» — первые 5 фильмов списка.
     final popular = movies.take(5).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('Популярное', style: _sectionTitleStyle),
-        ),
-        SizedBox(
-          height: 200,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: popular.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              final movie = popular[index];
-              return GestureDetector(
-                onTap: () => _openDetails(movie),
-                child: MoviePreviewCard(movie: movie),
-              );
-            },
-          ),
-        ),
-        const Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('Все фильмы', style: _sectionTitleStyle),
-        ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () {
-              // Индикатор крутится, пока блок не завершит completer.
-              final completer = Completer<void>();
-              context.read<MoviesBloc>().add(
-                RefreshMovies(completer: completer),
-              );
-              return completer.future;
-            },
-            child: ListView.builder(
-              // Отступ снизу, чтобы FloatingActionButton не закрывал последнюю карточку.
-              padding: const EdgeInsets.only(bottom: 88),
-              itemCount: movies.length,
-              // Без этого колбэка ListView.builder не находит переставленный
-              // элемент по ключу и пересоздаёт его, теряя состояние
-              // (см. notes.md, Задание 7).
-              findChildIndexCallback: (key) {
-                final index = movies.indexWhere((m) => ValueKey(m.id) == key);
-                return index == -1 ? null : index;
-              },
-              itemBuilder: (context, index) {
-                final movie = movies[index];
-                // Ключ стоит на корневом виджете элемента — Dismissible.
-                return Dismissible(
-                  key: ValueKey(movie.id),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 16),
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
-                  confirmDismiss: (direction) => _confirmDelete(movie),
-                  onDismissed: (direction) =>
-                      context.read<MoviesBloc>().add(RemoveMovie(movie.id)),
-                  child: GestureDetector(
-                    onTap: () => _openDetails(movie),
-                    onDoubleTap: () => _toggleFavorite(movie),
-                    child: MovieCard(movie: movie),
-                  ),
-                );
-              },
+    return RefreshIndicator(
+      onRefresh: () {
+        // Индикатор крутится, пока блок не завершит completer.
+        final completer = Completer<void>();
+        context.read<MoviesBloc>().add(RefreshMovies(completer: completer));
+        return completer.future;
+      },
+      // Весь экран — одна прокручиваемая область. В Column с лентой высотой
+      // 200 и Expanded-списком под ней на телефоне в ландшафте списку
+      // осталось бы несколько пикселей.
+      child: CustomScrollView(
+        slivers: [
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Популярное', style: _sectionTitleStyle),
             ),
           ),
-        ),
-      ],
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 200,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: popular.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final movie = popular[index];
+                  return GestureDetector(
+                    onTap: () => _openDetails(movie),
+                    child: MoviePreviewCard(movie: movie),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Все фильмы', style: _sectionTitleStyle),
+            ),
+          ),
+          _MoviesGrid(movies: movies, itemBuilder: _buildMovieItem),
+          // Отступ снизу, чтобы FloatingActionButton не закрывал последнюю карточку.
+          const SliverPadding(padding: EdgeInsets.only(bottom: 88)),
+        ],
+      ),
+    );
+  }
+
+  /// Элемент «Все фильмы» — одинаковый в списке и в сетке:
+  /// удаление свайпом, переход на детали, двойной тап — избранное.
+  Widget _buildMovieItem(BuildContext context, Movie movie) {
+    // Ключ стоит на корневом виджете элемента — Dismissible.
+    return Dismissible(
+      key: ValueKey(movie.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        color: Colors.red,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 16),
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      confirmDismiss: (direction) => _confirmDelete(movie),
+      onDismissed: (direction) =>
+          context.read<MoviesBloc>().add(RemoveMovie(movie.id)),
+      child: GestureDetector(
+        onTap: () => _openDetails(movie),
+        onDoubleTap: () => _toggleFavorite(movie),
+        child: MovieCard(movie: movie),
+      ),
     );
   }
 
@@ -213,12 +211,70 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: BlocBuilder<MoviesBloc, MoviesState>(builder: _buildBody),
+      // AppBar сам учитывает статус-бар, поэтому SafeArea — только у body
+      body: SafeArea(
+        child: BlocBuilder<MoviesBloc, MoviesState>(builder: _buildBody),
+      ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Добавить фильм',
         onPressed: _addMovie,
         child: const Icon(Icons.add),
       ),
+    );
+  }
+}
+
+/// «Все фильмы»: список на узком экране, сетка на широком.
+///
+/// Возвращает слайвер — он стоит в CustomScrollView вместе с лентой
+/// «Популярное». Ширину, доступную именно этому виджету, даёт
+/// SliverLayoutBuilder — слайверный вариант LayoutBuilder.
+class _MoviesGrid extends StatelessWidget {
+  const _MoviesGrid({required this.movies, required this.itemBuilder});
+  final List<Movie> movies;
+
+  // Элемент списка: Dismissible → GestureDetector → MovieCard
+  final Widget Function(BuildContext context, Movie movie) itemBuilder;
+
+  // Без этого колбэка список не находит переставленный элемент по ключу
+  // и пересоздаёт его, теряя состояние (см. notes.md, Задание 7).
+  int? _findIndex(Key key) {
+    final index = movies.indexWhere((m) => ValueKey(m.id) == key);
+    return index == -1 ? null : index;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final delegate = SliverChildBuilderDelegate(
+      (context, i) => itemBuilder(context, movies[i]),
+      childCount: movies.length,
+      findChildIndexCallback: _findIndex,
+    );
+    return SliverLayoutBuilder(
+      builder: (context, constraints) {
+        // Узкий экран (телефон) — список, как раньше
+        if (constraints.crossAxisExtent < 600) {
+          return SliverList(delegate: delegate);
+        }
+
+        // Широкий экран (планшет/десктоп) — сетка. MovieCard — горизонтальная
+        // карточка: постер 120 + отступы 12, поэтому задаём не пропорции
+        // ячейки, а её высоту; число колонок определяется автоматически.
+        // Текст карточки — 2 строки названия, год, рейтинг — занимает около
+        // 104 пикселей (высота строки в Material 3 — 1,43 от размера шрифта)
+        // и растёт вместе с системным размером шрифта.
+        final textHeight = MediaQuery.textScalerOf(context).scale(106);
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          sliver: SliverGrid(
+            delegate: delegate,
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 420,
+              mainAxisExtent: 12 + math.max(120, textHeight + 24),
+            ),
+          ),
+        );
+      },
     );
   }
 }

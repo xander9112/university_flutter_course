@@ -63,6 +63,10 @@ class _MovieCardState extends State<MovieCard> {
                 children: [
                   Text(
                     movie.title,
+                    // В сетке (Задание 20) у карточки фиксированная высота:
+                    // длинное название не должно выталкивать год и рейтинг.
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/adaptive_scaffold.dart';
 import '../../../favorites/presentation/screens/favorites_screen.dart';
 import '../../../movies/presentation/screens/home_screen.dart';
 import '../../../movies/presentation/screens/search_screen.dart';
@@ -12,12 +13,30 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
+  int _selectedIndex = 0;
+
+  static const _destinations = [
+    AdaptiveDestination(
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home,
+      label: 'Главная',
+    ),
+    AdaptiveDestination(
+      icon: Icons.search_outlined,
+      selectedIcon: Icons.search,
+      label: 'Поиск',
+    ),
+    AdaptiveDestination(
+      icon: Icons.favorite_outline,
+      selectedIcon: Icons.favorite,
+      label: 'Избранное',
+    ),
+  ];
 
   // У каждой вкладки свой ScaffoldMessenger: SnackBar показывается в Scaffold
   // вкладки, и её FloatingActionButton поднимается над ним. Иначе SnackBar
   // выводился бы во внешнем Scaffold и перекрывал кнопку «+».
-  final List<Widget> _screens = const [
+  static const _screens = [
     ScaffoldMessenger(child: HomeScreen()),
     ScaffoldMessenger(child: SearchScreen()),
     ScaffoldMessenger(child: FavoritesScreen()),
@@ -25,39 +44,29 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // IndexedStack держит все вкладки в дереве и показывает только активную.
-      // С `body: _screens[_currentIndex]` HomeScreen уничтожался бы при уходе
-      // на другую вкладку — вместе с добавленными фильмами и личными оценками.
+    return AdaptiveScaffold(
+      selectedIndex: _selectedIndex,
+      onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+      destinations: _destinations,
+      // IndexedStack держит все вкладки в дереве и показывает только активную:
+      // при уходе на другую вкладку HomeScreen не теряет добавленные фильмы.
       body: IndexedStack(
-        index: _currentIndex,
+        index: _selectedIndex,
         children: [
           // Скрытые вкладки остаются в дереве, и их Hero тоже участвуют
           // в переходе: фильм с главной и из избранного дал бы два Hero
           // с одним тегом. HeroMode выключает Hero во всех вкладках, кроме
           // активной. А TickerMode останавливает их анимации: IndexedStack
           // сам этого не делает, и Lottie пустого избранного или индикатор
-          // загрузки поиска крутились бы на скрытой вкладке всё время.
+          // загрузки поиска крутились бы на скрытой вкладке (Задание 19).
           for (var i = 0; i < _screens.length; i++)
             HeroMode(
-              enabled: i == _currentIndex,
+              enabled: i == _selectedIndex,
               child: TickerMode(
-                enabled: i == _currentIndex,
+                enabled: i == _selectedIndex,
                 child: _screens[i],
               ),
             ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Главная'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Поиск'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'Избранное',
-          ),
         ],
       ),
     );

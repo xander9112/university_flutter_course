@@ -58,6 +58,13 @@ void main() {
   testWidgets('до ввода показывает подсказку', (tester) async {
     await pumpSearch(tester);
     expect(find.text('Введите название фильма'), findsOneWidget);
+    expect(
+      find.ancestor(
+        of: find.text('Введите название фильма'),
+        matching: find.byType(SafeArea),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('запрос уходит один раз — после паузы в 500 мс', (tester) async {

@@ -209,4 +209,48 @@ void main() {
     expect(theme.isDark, isTrue);
     expect(find.byTooltip('Светлая тема'), findsOneWidget);
   });
+
+  // Задание 20: «Все фильмы» — список на узком экране, сетка на широком
+  group('адаптивность', () {
+    Future<void> pumpAtWidth(WidgetTester tester, double width) {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      return pumpHome(tester, const MoviesState.loaded([inception, matrix]));
+    }
+
+    testWidgets('ширина < 600 — список', (tester) async {
+      await pumpAtWidth(tester, 400);
+      expect(find.byType(SliverGrid), findsNothing);
+      // карточки идут друг под другом
+      final cards = find.byType(MovieCard);
+      expect(
+        tester.getTopLeft(cards.at(1)).dy,
+        greaterThanOrEqualTo(tester.getBottomLeft(cards.at(0)).dy),
+      );
+    });
+
+    testWidgets('ширина >= 600 — сетка, карточки в одном ряду', (tester) async {
+      await pumpAtWidth(tester, 1000);
+      expect(find.byType(SliverGrid), findsOneWidget);
+      final cards = find.byType(MovieCard);
+      expect(
+        tester.getTopLeft(cards.at(0)).dy,
+        tester.getTopLeft(cards.at(1)).dy,
+      );
+    });
+
+    testWidgets('в сетке работает удаление свайпом', (tester) async {
+      when(() => bloc.add(const RemoveMovie(1)))
+          .thenAnswer((_) => states.add(const MoviesState.loaded([matrix])));
+      await pumpAtWidth(tester, 1000);
+
+      await tester.drag(find.text('Inception').last, const Offset(-400, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Удалить'));
+      await tester.pumpAndSettle();
+
+      verify(() => bloc.add(const RemoveMovie(1))).called(1);
+    });
+  });
 }

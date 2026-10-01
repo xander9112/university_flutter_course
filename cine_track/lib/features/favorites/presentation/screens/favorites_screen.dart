@@ -14,22 +14,24 @@ class FavoritesScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Избранное')),
-      body: favorites.isEmpty
-          ? _buildEmpty()
-          : ListView.builder(
-              itemCount: favorites.length,
-              itemBuilder: (context, index) {
-                final movie = favorites[index];
-                return GestureDetector(
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    '/movie-detail',
-                    arguments: movie,
-                  ),
-                  child: MovieCard(movie: movie),
-                );
-              },
-            ),
+      body: SafeArea(
+        child: favorites.isEmpty
+            ? _buildEmpty()
+            : ListView.builder(
+                itemCount: favorites.length,
+                itemBuilder: (context, index) {
+                  final movie = favorites[index];
+                  return GestureDetector(
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      '/movie-detail',
+                      arguments: movie,
+                    ),
+                    child: MovieCard(movie: movie),
+                  );
+                },
+              ),
+      ),
     );
   }
 

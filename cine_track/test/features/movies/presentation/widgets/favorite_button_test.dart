@@ -19,7 +19,8 @@ void main() {
   testWidgets('иконка меняется с анимацией масштаба', (tester) async {
     await tester.pumpWidget(button(false, () {}));
     expect(find.byIcon(Icons.favorite_border), findsOneWidget);
-    expect(find.byTooltip('В избранное'), findsOneWidget);
+    expect(find.byTooltip('Добавить в избранное'), findsOneWidget);
+    expect(find.byType(Tooltip), findsOneWidget); // Задание 20
 
     await tester.pumpWidget(button(true, () {}));
     await tester.pump(const Duration(milliseconds: 150));
