@@ -2,6 +2,25 @@
 
 Каждая лекция курса — отдельная ветка `lesson_N`. Здесь описано, что изменилось в приложении по сравнению с предыдущей лекцией.
 
+## Лекция 3 — Dart: Null Safety (`lesson_3`)
+
+Фильмы теперь описываются типизированной моделью `Movie` вместо `Map<String, double>` из Лекции 2. Экранов пока нет, модель проверяется через консоль.
+
+### Добавлено
+- `lib/models/movie.dart` — класс `Movie`:
+  - обязательные поля: `id`, `title`, `releaseDate`, `genreIds` (по умолчанию `const []`);
+  - nullable-поля: `overview`, `posterPath`, `backdropPath`, `voteAverage`;
+  - геттеры `year`, `rating` (`?.` + `??` → «—»), `posterUrl` (URL постера TMDB или пустая строка).
+- `lib/data/mock_movies.dart` — `mockMovies`: 5 фильмов; у `Parasite` намеренно нет `overview` и `voteAverage`.
+- `lib/utils/movie_utils.dart` — `filterByRating`, `sortByRating` (по убыванию, не меняет исходный список), `searchByTitle` (без учёта регистра).
+
+### Изменено
+- `lib/main.dart`: перед `runApp` временно выводит в консоль моковые фильмы и результаты фильтрации, сортировки и поиска. Для nullable-полей используются `?.` и `??`, оператор `!` не используется. На время этого вывода в файле отключён линт `avoid_print`.
+
+### Проверка
+- Консольный вывод: для `Parasite` печатаются «—» и «Описание отсутствует»; `filterByRating(8.5)` → Inception, Interstellar, The Dark Knight; `sortByRating` → The Dark Knight, Inception, Interstellar, Dune, Parasite; `searchByTitle('in')` → Inception, Interstellar.
+- `flutter analyze` — без замечаний.
+
 ## Лекция 2 — Dart: синтаксис и основы (`lesson_2`)
 
 Задание выполняется на чистом Dart, само приложение не изменилось.
