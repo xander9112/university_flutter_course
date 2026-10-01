@@ -47,6 +47,11 @@ class MoviesBloc extends Bloc<MoviesEvent, MoviesState> {
       emit(MoviesLoaded(movies));
     } catch (e) {
       emit(MoviesError(e.toString()));
+    } finally {
+      // Freezed-состояния сравниваются по значению, и Bloc не выдаёт состояние,
+      // равное текущему: если пришли те же фильмы, нового состояния не будет.
+      // Поэтому RefreshIndicator ждёт не состояние, а этот Completer.
+      event.completer?.complete();
     }
   }
 

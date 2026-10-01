@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -79,32 +81,36 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBody(BuildContext context, MoviesState state) {
-    if (state is MoviesLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (state is MoviesError) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 8),
-              Text('Ошибка: ${state.message}', textAlign: TextAlign.center),
-              TextButton(
-                onPressed: () => context.read<MoviesBloc>().add(LoadMovies()),
-                child: const Text('Повторить'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    if (state is! MoviesLoaded) return const SizedBox();
+  // when требует обработать все варианты MoviesState: новое состояние
+  // без обработки здесь не скомпилируется.
+  Widget _buildBody(BuildContext context, MoviesState state) => state.when(
+    initial: () => const SizedBox(),
+    loading: () => const Center(child: CircularProgressIndicator()),
+    error: (message) => _buildError(context, message),
+    loaded: (movies) => _buildMovies(context, movies),
+  );
 
-    final movies = state.movies;
+  Widget _buildError(BuildContext context, String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 8),
+            Text('Ошибка: $message', textAlign: TextAlign.center),
+            TextButton(
+              onPressed: () => context.read<MoviesBloc>().add(LoadMovies()),
+              child: const Text('Повторить'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMovies(BuildContext context, List<Movie> movies) {
     // Лента «Популярное» — первые 5 фильмов списка.
     final popular = movies.take(5).toList();
     return Column(
@@ -137,9 +143,12 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: RefreshIndicator(
             onRefresh: () {
-              final bloc = context.read<MoviesBloc>()..add(RefreshMovies());
-              // ждём следующее состояние, чтобы индикатор не пропал раньше времени
-              return bloc.stream.first;
+              // Индикатор крутится, пока блок не завершит completer.
+              final completer = Completer<void>();
+              context.read<MoviesBloc>().add(
+                RefreshMovies(completer: completer),
+              );
+              return completer.future;
             },
             child: ListView.builder(
               // Отступ снизу, чтобы FloatingActionButton не закрывал последнюю карточку.

@@ -4,6 +4,7 @@ import '../../domain/entities/movie.dart';
 import '../../domain/repositories/movie_repository.dart';
 import '../datasources/movie_local_datasource.dart';
 import '../datasources/movie_remote_datasource.dart';
+import '../models/movie_dto.dart'; // расширение toEntity()
 
 @LazySingleton(as: MovieRepository)
 class MovieRepositoryImpl implements MovieRepository {

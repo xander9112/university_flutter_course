@@ -6,3 +6,6 @@ analyzer:
     - android/**
     - ios/**
     - web/**
+  errors:
+    # Freezed ставит @JsonSerializable/@JsonKey на параметры конструктора — так задумано
+    invalid_annotation_target: ignore

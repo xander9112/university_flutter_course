@@ -1,9 +1,26 @@
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 
-/// Регистрация классов из чужих пакетов, на которые нельзя поставить аннотацию.
+import '../../features/movies/data/datasources/movie_api_client.dart';
+
+/// Регистрация классов из чужих пакетов и сгенерированных реализаций,
+/// на которые нельзя поставить аннотацию.
 @module
 abstract class AppModule {
   @lazySingleton
-  http.Client get httpClient => http.Client();
+  Dio get dio {
+    final dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+      ),
+    );
+    // Лог запросов печатает URL вместе с api_key — только в отладочной сборке.
+    if (kDebugMode) dio.interceptors.add(LogInterceptor(requestBody: true));
+    return dio;
+  }
+
+  @lazySingleton
+  MovieApiClient movieApiClient(Dio dio) => MovieApiClient(dio);
 }

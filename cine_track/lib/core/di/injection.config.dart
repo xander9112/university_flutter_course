@@ -10,8 +10,8 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
+import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
-import 'package:http/http.dart' as _i519;
 import 'package:injectable/injectable.dart' as _i526;
 
 import '../../features/favorites/data/repositories/favorites_repository_impl.dart'
@@ -22,6 +22,7 @@ import '../../features/favorites/domain/usecases/get_favorites.dart' as _i418;
 import '../../features/favorites/domain/usecases/toggle_favorite.dart' as _i189;
 import '../../features/favorites/presentation/providers/favorites_provider.dart'
     as _i366;
+import '../../features/movies/data/datasources/movie_api_client.dart' as _i911;
 import '../../features/movies/data/datasources/movie_local_datasource.dart'
     as _i762;
 import '../../features/movies/data/datasources/movie_remote_datasource.dart'
@@ -51,7 +52,7 @@ extension GetItInjectableX on _i174.GetIt {
   }) {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
     final appModule = _$AppModule();
-    gh.lazySingleton<_i519.Client>(() => appModule.httpClient);
+    gh.lazySingleton<_i361.Dio>(() => appModule.dio);
     gh.lazySingleton<_i212.FavoritesRepository>(
       () => _i144.FavoritesRepositoryImpl(),
     );
@@ -61,14 +62,14 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i762.MovieLocalDataSource>(
       () => _i762.MovieLocalDataSourceImpl(),
     );
+    gh.lazySingleton<_i911.MovieApiClient>(
+      () => appModule.movieApiClient(gh<_i361.Dio>()),
+    );
     gh.lazySingleton<_i418.GetFavorites>(
       () => _i418.GetFavorites(gh<_i212.FavoritesRepository>()),
     );
     gh.lazySingleton<_i189.ToggleFavorite>(
       () => _i189.ToggleFavorite(gh<_i212.FavoritesRepository>()),
-    );
-    gh.lazySingleton<_i492.MovieRemoteDataSource>(
-      () => _i492.MovieRemoteDataSourceImpl(gh<_i519.Client>()),
     );
     gh.factory<_i366.FavoritesProvider>(
       () => _i366.FavoritesProvider(
@@ -81,6 +82,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i921.SetRating>(
       () => _i921.SetRating(gh<_i607.RatingsRepository>()),
+    );
+    gh.lazySingleton<_i492.MovieRemoteDataSource>(
+      () => _i492.MovieRemoteDataSourceImpl(gh<_i911.MovieApiClient>()),
     );
     gh.factory<_i101.RatingsProvider>(
       () => _i101.RatingsProvider(

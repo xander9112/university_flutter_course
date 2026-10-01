@@ -2,6 +2,43 @@
 
 Каждая лекция курса — отдельная ветка `lesson_N`. Здесь описано, что изменилось в приложении по сравнению с предыдущей лекцией.
 
+## Лекция 17 — Генерация кода (`lesson_17`)
+
+Ручной бойлерплейт заменён кодогенерацией: модели, события и состояния — на Freezed и json_serializable, HTTP-клиент `http` — на Dio с API-клиентом Retrofit.
+
+### Добавлено
+- Зависимости `freezed_annotation: ^3.1.0`, `json_annotation: ^4.12.0`, `retrofit: ^4.10.0`, `dio: ^5.11.1`; dev — `freezed: ^4.0.1`, `json_serializable: ^6.14.1`, `retrofit_generator: ^10.2.11`.
+- `lib/features/movies/data/datasources/movie_api_client.dart` — Retrofit-клиент `MovieApiClient` (`@RestApi`, `@GET('/movie/popular')`, `@GET('/search/movie')`, параметры через `@Query`).
+- `lib/features/movies/data/models/movie_list_response.dart` — ответ TMDB (`results`, `page`, `total_pages`).
+- Сгенерированные файлы `*.freezed.dart`, `*.g.dart` — лежат в репозитории, как и `injection.config.dart`.
+- `analysis_options.yaml`: `invalid_annotation_target: ignore` — Freezed ставит `@JsonSerializable`/`@JsonKey` на параметры конструктора.
+
+### Изменено
+- `Movie` — `@freezed abstract class`: появились `copyWith`, `==`, `hashCode`; геттеры `year`, `rating`, `posterUrl` остались (через приватный конструктор `Movie._()`). `releaseDate` теперь `@Default('')`.
+- `MovieDto` — `@freezed` + `@JsonSerializable(fieldRename: FieldRename.snake)`: `fromJson`/`toJson` генерируются, формат JSON прежний — старый файловый кэш читается. `toEntity()` стал расширением `MovieDtoMapper`, поэтому в `MovieRepositoryImpl` добавлен импорт `movie_dto.dart`.
+- `MoviesEvent` и `MoviesState` — `@freezed sealed class` с прежними именами классов (`LoadMovies`, `MoviesLoaded` и т.д.), так что `on<...>` в блоке и вызовы `add(...)` не изменились.
+- `HomeScreen`: цепочка `if (state is ...)` заменена на `state.when(...)` — разметка ошибки и списка вынесена в `_buildError` и `_buildMovies`.
+- Pull-to-refresh: событие `RefreshMovies` несёт `Completer`, блок завершает его в `finally`, `RefreshIndicator` ждёт `completer.future`. Раньше индикатор ждал `bloc.stream.first`, а Bloc не выдаёт состояние, равное текущему: при тех же фильмах индикатор крутился бы бесконечно.
+- `AppModule`: вместо `http.Client` — `Dio` (таймауты 15 с) и фабрика `MovieApiClient`.
+- `MovieRemoteDataSourceImpl` работает через `MovieApiClient`; ручной разбор JSON удалён. `_guard` переводит `DioException` в прежние сообщения «Ошибка загрузки: код» и «Нет соединения с сервером» — текст `DioException` может содержать URL с `api_key`.
+- `README.md`: какие файлы генерируются.
+
+### Удалено
+- Зависимость `http` (остаётся только транзитивной).
+
+### Отличия от задания
+- `LogInterceptor` подключается только при `kDebugMode`: он печатает URL запроса вместе с `api_key`, а в релизной сборке логи тоже видны (например, в `adb logcat`).
+- Проверка пустого ключа («Не задан ключ TMDB», подсказка из Задания 11) осталась — теперь в `_guard`.
+
+### Проверка
+- `dart run build_runner build --delete-conflicting-outputs` — без ошибок; `flutter analyze` — без замечаний.
+- Временные тесты (удалены после проверки):
+  - `MovieDto.fromJson`: snake_case-ключи, `release_date: null` → `''`, обратимость `toJson`, чтение кэша прошлой версии;
+  - `MovieApiClient` через подменный адаптер Dio: путь и параметры (`api_key`, `language=ru-RU`, `page`, `query` с кириллицей); ответ 401 → «Ошибка загрузки: 401», сетевая ошибка → «Нет соединения с сервером» без URL;
+  - `MoviesBloc`: refresh с теми же фильмами завершает `Completer`, удаление работает;
+  - `HomeScreen`: pull-to-refresh с теми же данными — индикатор исчезает.
+- `flutter build web`, `flutter build apk --debug`, `flutter build ios --simulator` проходят; в headless Chrome приложение запускается без ошибок, сетевая ошибка Dio показывается как «Нет соединения с сервером».
+
 ## Лекция 16 — Dependency Injection (`lesson_16`)
 
 Ручная сборка зависимостей из `app_dependencies.dart` заменена на GetIt + Injectable: классы помечены аннотациями, регистрация генерируется.

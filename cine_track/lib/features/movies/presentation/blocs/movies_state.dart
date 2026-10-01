@@ -1,21 +1,20 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
 import '../../domain/entities/movie.dart';
 
-abstract class MoviesState {}
+part 'movies_state.freezed.dart';
 
-/// Начальное состояние (до первой загрузки)
-class MoviesInitial extends MoviesState {}
+@freezed
+sealed class MoviesState with _$MoviesState {
+  /// Начальное состояние (до первой загрузки)
+  const factory MoviesState.initial() = MoviesInitial;
 
-/// Загрузка
-class MoviesLoading extends MoviesState {}
+  /// Загрузка
+  const factory MoviesState.loading() = MoviesLoading;
 
-/// Данные загружены успешно
-class MoviesLoaded extends MoviesState {
-  final List<Movie> movies;
-  MoviesLoaded(this.movies);
-}
+  /// Данные загружены успешно
+  const factory MoviesState.loaded(List<Movie> movies) = MoviesLoaded;
 
-/// Произошла ошибка
-class MoviesError extends MoviesState {
-  final String message;
-  MoviesError(this.message);
+  /// Произошла ошибка
+  const factory MoviesState.error(String message) = MoviesError;
 }
