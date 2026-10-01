@@ -10,6 +10,8 @@
 #   TMDB_IMPORT_ACCESS_TOKEN — необязательно: API Read Access Token TMDB для кнопок импорта
 #                         в админке («100 лучших за 40 лет», «Популярные»); вместо него можно
 #                         задать TMDB_IMPORT_API_KEY (API Key v3)
+#   NODE_USE_ENV_PROXY, HTTPS_PROXY — необязательно: прокси для импорта, если сервер не достаёт
+#                         до TMDB напрямую (NODE_USE_ENV_PROXY=1, HTTPS_PROXY=http://host:port)
 #
 # Nginx Proxy Manager: один Proxy Host cine-track.xander9112.keenetic.link → порт 5210 (web),
 # HTTPS через Let's Encrypt, без Custom locations. nginx веб-версии сам проксирует пути API
@@ -37,7 +39,7 @@ services:
       - cinetrack
 
   api:
-    image: registry.xander9112.keenetic.link/cinetrack-api:1.2.0
+    image: registry.xander9112.keenetic.link/cinetrack-api:1.2.1
     container_name: cinetrack_api
     restart: unless-stopped
     environment:
@@ -45,6 +47,9 @@ services:
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
       TMDB_IMPORT_ACCESS_TOKEN: ${TMDB_IMPORT_ACCESS_TOKEN:-}
       TMDB_IMPORT_API_KEY: ${TMDB_IMPORT_API_KEY:-}
+      # Если сервер не достаёт до TMDB напрямую: NODE_USE_ENV_PROXY=1 и HTTPS_PROXY=http://host:port
+      NODE_USE_ENV_PROXY: ${NODE_USE_ENV_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
     volumes:
       # Загруженные постеры; без volume пропадут при обновлении образа
       - cinetrack_media:/app/media

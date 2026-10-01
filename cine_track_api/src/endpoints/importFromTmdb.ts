@@ -19,6 +19,9 @@ import { isReleaseDate, normalizeRating } from '../lib/movieData'
  *   TMDB_IMPORT_ACCESS_TOKEN — API Read Access Token (заголовок Authorization: Bearer)
  *   TMDB_IMPORT_API_KEY      — или API Key v3 (параметр api_key)
  *
+ * Если сервер не достаёт до TMDB напрямую — прокси: NODE_USE_ENV_PROXY=1 и HTTPS_PROXY
+ * (их понимает fetch в Node 22.21+, код для этого не нужен).
+ *
  * Повторный импорт обновляет фильмы по tmdbId и не скачивает уже загруженные картинки.
  * Флажок «Опубликован» у существующих фильмов не меняется.
  */
@@ -68,6 +71,38 @@ let job: ImportJob | null = null
 
 class TmdbError extends Error {}
 
+const API_TIMEOUT = 20_000
+const IMAGE_TIMEOUT = 30_000
+
+/**
+ * Почему fetch не дошёл до TMDB. Текст ошибки fetch может содержать URL — с api_key, если он
+ * задан, — поэтому наружу отдаём только код ошибки и имя хоста.
+ */
+function fetchFailure(error: unknown, url: string, timeout: number): string {
+  const host = new URL(url).host
+  if (error instanceof Error && error.name === 'TimeoutError') {
+    return `${host} не ответил за ${timeout / 1000} с`
+  }
+  // Node перебирает адреса IPv4/IPv6 и при неудаче отдаёт AggregateError со списком
+  const cause = (error as { cause?: { code?: string; errors?: { code?: string }[] } })?.cause
+  const code = cause?.code ?? cause?.errors?.find((e) => e.code)?.code
+  if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') {
+    return `не удалось найти адрес ${host} — DNS сервера не работает или хост заблокирован (${code})`
+  }
+  if (code && /CERT|TLS|SSL|SELF_SIGNED/.test(code)) {
+    return `ошибка TLS при соединении с ${host} (${code})`
+  }
+  return `нет соединения с ${host}${code ? ` (${code})` : ''}`
+}
+
+async function fetchTmdb(url: string, init: RequestInit, timeout: number): Promise<Response> {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(timeout) })
+  } catch (error) {
+    throw new TmdbError(fetchFailure(error, url, timeout))
+  }
+}
+
 function tmdbAuth(): { headers: Record<string, string>; query: string } | null {
   const token = process.env.TMDB_IMPORT_ACCESS_TOKEN?.trim()
   if (token) return { headers: { Authorization: `Bearer ${token}` }, query: '' }
@@ -84,16 +119,11 @@ async function tmdbPage(
   const query = Object.entries(params)
     .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
     .join('&')
-  let response: Response
-  try {
-    response = await fetch(`${TMDB_API}${path}?${auth.query}${query}`, {
-      headers: { Accept: 'application/json', ...auth.headers },
-      signal: AbortSignal.timeout(20_000),
-    })
-  } catch {
-    // Текст ошибки fetch содержит URL — с api_key, если он задан. Наружу — без него
-    throw new TmdbError('нет соединения с TMDB')
-  }
+  const response = await fetchTmdb(
+    `${TMDB_API}${path}?${auth.query}${query}`,
+    { headers: { Accept: 'application/json', ...auth.headers } },
+    API_TIMEOUT,
+  )
   if (response.status === 401) throw new TmdbError('TMDB отклонил токен или ключ (401)')
   if (!response.ok) throw new TmdbError(`TMDB ответил ${response.status}`)
   return ((await response.json()) as { results?: TmdbMovie[] }).results ?? []
@@ -153,9 +183,7 @@ async function ensureImage(
   })
   if (existing.docs[0]) return existing.docs[0].id
 
-  const response = await fetch(`${TMDB_IMAGES}/${size}${tmdbPath}`, {
-    signal: AbortSignal.timeout(30_000),
-  })
+  const response = await fetchTmdb(`${TMDB_IMAGES}/${size}${tmdbPath}`, {}, IMAGE_TIMEOUT)
   if (!response.ok) throw new Error(`картинка не скачалась (${response.status})`)
   const data = Buffer.from(await response.arrayBuffer())
   const media = await payload.create({
