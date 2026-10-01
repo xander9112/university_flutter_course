@@ -4,7 +4,9 @@ import '../data/mock_movies.dart';
 import '../models/movie.dart';
 import '../widgets/movie_card.dart';
 import '../widgets/movie_preview_card.dart';
+import 'add_movie_screen.dart';
 import 'movie_detail_screen.dart';
+import 'search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,12 +31,63 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _addMovie() async {
+    final movie = await Navigator.push<Movie>(
+      context,
+      MaterialPageRoute(builder: (_) => const AddMovieScreen()),
+    );
+    // После await экран мог быть уже закрыт — тогда context использовать нельзя.
+    if (movie == null || !mounted) return;
+
+    setState(() => _movies.insert(0, movie));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('«${movie.title}» добавлен!')));
+  }
+
+  Future<bool?> _confirmDelete(Movie movie) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Удалить фильм?'),
+        content: Text('Вы уверены, что хотите удалить «${movie.title}»?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Удалить', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addToFavorites(Movie movie) {
+    // Само избранное пока нигде не хранится — это будет в Задании 12.
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('«${movie.title}» добавлен в избранное'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('CineTrack'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'Поиск',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SearchScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.shuffle),
             tooltip: 'Перемешать',
@@ -75,7 +128,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.only(bottom: 6),
+              // Отступ снизу, чтобы FloatingActionButton не закрывал последнюю карточку.
+              padding: const EdgeInsets.only(bottom: 88),
               itemCount: _movies.length,
               // Без этого колбэка ListView.builder не находит переставленный
               // элемент по ключу и пересоздаёт его, теряя состояние
@@ -96,6 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.only(right: 16),
                     child: const Icon(Icons.delete, color: Colors.white),
                   ),
+                  confirmDismiss: (direction) => _confirmDelete(movie),
                   onDismissed: (direction) {
                     setState(() {
                       _movies.removeAt(index);
@@ -103,6 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                   child: GestureDetector(
                     onTap: () => _openDetails(movie),
+                    onDoubleTap: () => _addToFavorites(movie),
                     child: MovieCard(movie: movie),
                   ),
                 );
@@ -110,6 +166,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'Добавить фильм',
+        onPressed: _addMovie,
+        child: const Icon(Icons.add),
       ),
     );
   }
