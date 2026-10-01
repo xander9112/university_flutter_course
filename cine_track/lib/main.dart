@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'screens/home_screen.dart';
+import 'screens/add_movie_screen.dart';
+import 'screens/main_screen.dart';
+import 'screens/movie_detail_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,10 +13,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'CineTrack',
-      home: HomeScreen(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const MainScreen(),
+        '/movie-detail': (context) => const MovieDetailScreen(),
+        '/add-movie': (context) => const AddMovieScreen(),
+      },
     );
   }
 }

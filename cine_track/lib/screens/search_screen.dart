@@ -4,7 +4,6 @@ import '../data/mock_movies.dart';
 import '../models/movie.dart';
 import '../utils/movie_utils.dart';
 import '../widgets/movie_card.dart';
-import 'movie_detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -35,7 +34,6 @@ class _SearchScreenState extends State<SearchScreen> {
       appBar: AppBar(
         title: TextField(
           controller: _controller,
-          autofocus: true,
           onChanged: _onSearch,
           decoration: const InputDecoration(
             hintText: 'Название фильма...',
@@ -50,11 +48,10 @@ class _SearchScreenState extends State<SearchScreen> {
               itemBuilder: (context, index) {
                 final movie = _results[index];
                 return GestureDetector(
-                  onTap: () => Navigator.push(
+                  onTap: () => Navigator.pushNamed(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => MovieDetailScreen(movie: movie),
-                    ),
+                    '/movie-detail',
+                    arguments: movie,
                   ),
                   child: MovieCard(movie: movie),
                 );

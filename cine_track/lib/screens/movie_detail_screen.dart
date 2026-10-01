@@ -3,14 +3,24 @@ import 'package:flutter/material.dart';
 import '../data/genres.dart';
 import '../models/movie.dart';
 import '../widgets/movie_poster.dart';
+import '../widgets/rating_dialog.dart';
 
 class MovieDetailScreen extends StatelessWidget {
-  final Movie movie;
+  const MovieDetailScreen({super.key});
 
-  const MovieDetailScreen({super.key, required this.movie});
+  Future<void> _rate(BuildContext context) async {
+    final rating = await showDialog<double>(
+      context: context,
+      builder: (_) => const RatingDialog(),
+    );
+    if (rating != null && context.mounted) {
+      Navigator.pop(context, rating); // возвращаем оценку на предыдущий экран
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final movie = ModalRoute.of(context)!.settings.arguments as Movie;
     final genres = movie.genreIds
         .map((id) => tmdbGenres[id])
         .whereType<String>()
@@ -27,7 +37,7 @@ class MovieDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
+            _buildHeader(movie),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -70,6 +80,15 @@ class MovieDetailScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () => _rate(context),
+                      icon: const Icon(Icons.star),
+                      label: const Text('Оценить'),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -79,7 +98,7 @@ class MovieDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(Movie movie) {
     return Stack(
       children: [
         MoviePoster(

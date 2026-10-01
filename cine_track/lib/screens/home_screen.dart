@@ -4,9 +4,6 @@ import '../data/mock_movies.dart';
 import '../models/movie.dart';
 import '../widgets/movie_card.dart';
 import '../widgets/movie_preview_card.dart';
-import 'add_movie_screen.dart';
-import 'movie_detail_screen.dart';
-import 'search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,23 +16,32 @@ class _HomeScreenState extends State<HomeScreen> {
   // Изменяемая копия: список перемешивается и из него удаляются фильмы.
   final List<Movie> _movies = [...mockMovies];
 
+  // Личные оценки: id фильма → оценка. Пока живут только в памяти.
+  final Map<int, double> _userRatings = {};
+
   static const _sectionTitleStyle = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.bold,
   );
 
-  void _openDetails(Movie movie) {
-    Navigator.push(
+  Future<void> _openDetails(Movie movie) async {
+    // Без параметра типа: таблица routes создаёт MaterialPageRoute<dynamic>,
+    // и pushNamed<double> упал бы с TypeError. Приводим тип результата.
+    final rating = await Navigator.pushNamed(
       context,
-      MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: movie)),
+      '/movie-detail',
+      arguments: movie,
+    ) as double?;
+    if (rating == null || !mounted) return;
+
+    setState(() => _userRatings[movie.id] = rating);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Ваша оценка «${movie.title}»: $rating')),
     );
   }
 
   Future<void> _addMovie() async {
-    final movie = await Navigator.push<Movie>(
-      context,
-      MaterialPageRoute(builder: (_) => const AddMovieScreen()),
-    );
+    final movie = await Navigator.pushNamed(context, '/add-movie') as Movie?;
     // После await экран мог быть уже закрыт — тогда context использовать нельзя.
     if (movie == null || !mounted) return;
 
@@ -80,14 +86,6 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('CineTrack'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            tooltip: 'Поиск',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SearchScreen()),
-            ),
-          ),
           IconButton(
             icon: const Icon(Icons.shuffle),
             tooltip: 'Перемешать',
