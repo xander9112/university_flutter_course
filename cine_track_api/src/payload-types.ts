@@ -172,6 +172,10 @@ export interface Movie {
    */
   published?: boolean | null;
   /**
+   * Поле key из movies.json: по нему повторная загрузка архива обновляет фильм
+   */
+  importKey?: string | null;
+  /**
    * Заполняется импортом из TMDB; по нему повторный импорт обновляет фильм
    */
   tmdbId?: number | null;
@@ -348,6 +352,7 @@ export interface MoviesSelect<T extends boolean = true> {
   popularity?: T;
   genres?: T;
   published?: T;
+  importKey?: T;
   tmdbId?: T;
   updatedAt?: T;
   createdAt?: T;

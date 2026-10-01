@@ -46,6 +46,11 @@ export default buildConfig({
     prodMigrations: migrations,
   }),
   sharp,
+  // Лимит размера загружаемого файла: по умолчанию Payload принимает до 20 МБ, а ZIP-архиву
+  // с постерами нужно больше. Тот же лимит — у nginx веб-версии (client_max_body_size).
+  upload: {
+    limits: { fileSize: 200 * 1024 * 1024 },
+  },
   graphQL: {
     disable: true, // приложению GraphQL не нужен, только REST в формате TMDB
   },

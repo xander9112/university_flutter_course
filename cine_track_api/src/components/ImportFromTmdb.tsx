@@ -39,7 +39,9 @@ export function ImportFromTmdb() {
   }
 
   return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
+    <div
+      style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}
+    >
       <label>
         Страниц TMDB (по 20 фильмов):{' '}
         <input

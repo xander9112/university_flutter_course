@@ -1,0 +1,32 @@
+{
+  "movies": [
+    {
+      "key": "example-1",
+      "title": "Пример: фильм с постером и кадром",
+      "original_title": "Example One",
+      "overview": "Описание фильма. Повторная загрузка архива обновит фильм по полю key.",
+      "poster": "posters/example-1.jpg",
+      "backdrop": "backdrops/example-1.jpg",
+      "vote_average": 8.2,
+      "release_date": "1999-03-31",
+      "genre_ids": [28, 878],
+      "popularity": 90
+    },
+    {
+      "key": "example-2",
+      "title": "Пример: жанры кодами",
+      "original_title": "Example Two",
+      "overview": "Жанры можно задать кодами (genres) вместо id TMDB (genre_ids).",
+      "poster": "posters/example-2.jpg",
+      "vote_average": 7.5,
+      "release_date": "2010-07-15",
+      "genres": ["drama", "crime"],
+      "popularity": 80
+    },
+    {
+      "key": "example-3",
+      "title": "Пример: минимальный фильм",
+      "release_date": ""
+    }
+  ]
+}

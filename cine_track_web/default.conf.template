@@ -31,7 +31,7 @@ server {
         # Nginx Proxy Manager снаружи терминирует HTTPS и передаёт исходную схему
         proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
         proxy_read_timeout 120s; # импорт из TMDB в админке может идти до минуты
-        client_max_body_size 20m; # загрузка постеров
+        client_max_body_size 200m; # загрузка постеров и ZIP-архивов (лимит Payload — тоже 200 МБ)
     }
 
     location / {
